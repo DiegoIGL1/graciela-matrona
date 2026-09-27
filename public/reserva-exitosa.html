@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserva confirmada · Graciela</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="hero">
+  <h1>¡Listo!</h1>
+  <p class="subtitle">RESERVA CONFIRMADA</p>
+</header>
+<main class="wrap" style="max-width:560px; text-align:center; padding-bottom:80px;">
+  <div class="booking-card" id="detail">
+    <p>Cargando el detalle de tu reserva...</p>
+  </div>
+  <p style="margin-top:24px;"><a href="/" style="color:var(--maroon); font-weight:600;">Volver al inicio</a></p>
+</main>
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const box = document.getElementById('detail');
+  if (id) {
+    fetch(`/api/bookings/${id}`).then(r => r.json()).then(b => {
+      box.innerHTML = `
+        <p class="eyebrow">${b.serviceName}</p>
+        <h2 style="margin-top:8px;">${b.date} a las ${b.time}</h2>
+        <p style="margin-top:16px; color:#6b5560;">
+          Te enviamos la confirmación a <strong>${b.email}</strong>.
+          Cualquier duda, escríbenos por WhatsApp.
+        </p>`;
+    }).catch(() => {
+      box.innerHTML = '<p>Tu pago fue aprobado. Nos pondremos en contacto para confirmar los detalles.</p>';
+    });
+  } else {
+    box.innerHTML = '<p>Tu pago fue aprobado. Nos pondremos en contacto para confirmar los detalles.</p>';
+  }
+</script>
+</body>
+</html>

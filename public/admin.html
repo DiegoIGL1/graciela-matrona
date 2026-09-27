@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de reservas · Graciela</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  th, td { padding: 12px 14px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--cream); }
+  th { background: var(--maroon); color: white; font-weight: 600; }
+  .status { padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+  .status.confirmed { background: #dff5e1; color: #257a3e; }
+  .status.pending_payment { background: #fff3d6; color: #9a7100; }
+  .status.payment_failed { background: #fde0e0; color: #a33; }
+</style>
+</head>
+<body>
+<header class="hero" style="padding:40px 24px 20px;">
+  <h1 style="font-size:2.2rem;">Panel de reservas</h1>
+</header>
+<main class="wrap" style="padding-bottom:80px;">
+  <div class="booking-card" style="max-width:400px; margin-bottom:30px;" id="login-box">
+    <div class="field">
+      <label for="password">Clave de administración</label>
+      <input type="password" id="password">
+    </div>
+    <button class="submit-btn" onclick="loadBookings()">Entrar</button>
+    <p class="form-msg error" id="login-msg"></p>
+  </div>
+
+  <div id="table-wrap" style="display:none; overflow-x:auto;">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Hora</th><th>Servicio</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Estado</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+  async function loadBookings() {
+    const password = document.getElementById('password').value;
+    const msg = document.getElementById('login-msg');
+    msg.textContent = '';
+    const res = await fetch(`/api/admin/bookings?password=${encodeURIComponent(password)}`);
+    if (!res.ok) {
+      msg.textContent = 'Clave incorrecta.';
+      return;
+    }
+    const bookings = await res.json();
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('table-wrap').style.display = 'block';
+    const rows = document.getElementById('rows');
+    rows.innerHTML = bookings.map(b => `
+      <tr>
+        <td>${b.date}</td><td>${b.time}</td><td>${b.serviceName}</td>
+        <td>${b.name}</td><td>${b.phone}</td><td>${b.email}</td>
+        <td><span class="status ${b.status}">${b.status}</span></td>
+      </tr>`).join('') || '<tr><td colspan="7">Aún no hay reservas.</td></tr>';
+  }
+</script>
+</body>
+</html>

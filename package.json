@@ -1,0 +1,17 @@
+{
+  "name": "graciela-matrona",
+  "version": "1.0.0",
+  "description": "Sitio de agendamiento y pagos para Graciela - Matrona y Asesora de Lactancia",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.14",
+    "transbank-sdk": "^6.1.0",
+    "uuid": "^9.0.1"
+  }
+}
