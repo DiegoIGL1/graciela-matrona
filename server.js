@@ -12,12 +12,15 @@ const PORT = process.env.PORT || 3000;
 const ROLE = (process.env.ROLE || 'public').toLowerCase(); // 'public' | 'admin'
 
 // ---------------------------------------------------------------------------
-// Fotos: se guardan en public/img con nombre único por subida.
+// Fotos: se guardan dentro de data/img (mismo volumen persistente que
+// data/config.json) para que un solo volumen de Railway alcance — Railway
+// solo permite un volumen por servicio. El sitio público las sirve bajo
+// la ruta /img/ aunque físicamente no estén en public/.
 // Un manifiesto (data/photos.json) guarda qué archivo va en cada "slot"
 // (hero, about, consulta) para que el sitio siempre apunte al archivo
 // correcto sin que haya que cambiar ningún link a mano.
 // ---------------------------------------------------------------------------
-const IMG_DIR = path.join(__dirname, 'public', 'img');
+const IMG_DIR = path.join(__dirname, 'data', 'img');
 const PHOTOS_FILE = path.join(__dirname, 'data', 'photos.json');
 const VALID_SLOTS = ['hero', 'about', 'consulta'];
 
@@ -62,6 +65,7 @@ if (ROLE === 'public') {
   // no hay panel ni formularios que atacar.
   // ---------------------------------------------------------------------
   app.use(express.static(path.join(__dirname, 'public')));
+  app.use('/img', express.static(IMG_DIR)); // fotos (viven en data/img, fuera de public/)
 
   const SYNC_SECRET = process.env.SYNC_SECRET;
 

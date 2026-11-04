@@ -70,7 +70,8 @@ servidor. Vuelve a correrlo cada vez que quieras una vista previa actualizada.
      "openssl rand -hex 32">`
    - Start command: `npm run start:public` (o deja el start command por
      defecto y pon `ROLE=public` como variable — ambas formas funcionan)
-   - Volúmenes persistentes: uno en `/app/data`, otro en `/app/public/img`
+   - Volumen persistente: uno en `/app/data` (ahí vive también `data/img`
+     con las fotos — Railway solo permite un volumen por servicio)
    - Dominio: este es el que conecta con `matronalactancia.cl`
 
    **Servicio admin:**
@@ -78,8 +79,8 @@ servidor. Vuelve a correrlo cada vez que quieras una vista previa actualizada.
      `SYNC_SECRET=<el mismo valor de arriba>`, `PUBLIC_SITE_URL=<la URL que
      Railway le dio al servicio público, sin "/" al final>`
    - Start command: `npm run start:admin`
-   - Volúmenes persistentes: uno en `/app/data`, otro en `/app/public/img`
-     (son su propia copia de trabajo — el servicio público tiene la suya)
+   - Volumen persistente: uno en `/app/data` (es su propia copia de
+     trabajo — el servicio público tiene la suya)
    - No hace falta dominio propio: usa la URL que Railway asigna por
      defecto (algo.up.railway.app). Solo la usan Diego y Graciela, y ya
      está protegida por `ADMIN_PASSWORD`.
