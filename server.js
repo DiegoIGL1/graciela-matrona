@@ -1,190 +1,256 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { WebpayPlus, Options, IntegrationApiKeys, Environment } = require('transbank-sdk');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('./db');
 
 const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '20mb' })); // las fotos viajan en base64 entre los dos servidores
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'cambia-esta-clave';
+const ROLE = (process.env.ROLE || 'public').toLowerCase(); // 'public' | 'admin'
 
 // ---------------------------------------------------------------------------
-// Configuracion de servicios y horario de atencion.
-// Tu mama puede editar esto libremente: precios, duracion y nombres.
+// Fotos: se guardan en public/img con nombre único por subida.
+// Un manifiesto (data/photos.json) guarda qué archivo va en cada "slot"
+// (hero, about, consulta) para que el sitio siempre apunte al archivo
+// correcto sin que haya que cambiar ningún link a mano.
 // ---------------------------------------------------------------------------
-const SERVICES = {
-  lactancia_online: { name: 'Asesoría de lactancia online', duration: 45, price: 25000 },
-  lactancia_domicilio: { name: 'Asesoría de lactancia a domicilio', duration: 60, price: 40000 },
-  cuidado_recien_nacido: { name: 'Cuidado de recién nacido', duration: 90, price: 50000 },
-  taller_destete: { name: 'Taller de destete', duration: 60, price: 30000 },
-  visita_domicilio: { name: 'Visita a domicilio postparto', duration: 75, price: 45000 },
-  banco_leche: { name: 'Asesoría banco de leche', duration: 45, price: 25000 },
-  gift_card_baby_shower: { name: 'Gift card baby shower — Asesoría de lactancia', duration: 30, price: 25000 },
-};
-// Nota: precios y duraciones son valores de partida — tu mamá los puede
-// cambiar libremente editando los números de arriba.
+const IMG_DIR = path.join(__dirname, 'public', 'img');
+const PHOTOS_FILE = path.join(__dirname, 'data', 'photos.json');
+const VALID_SLOTS = ['hero', 'about', 'consulta'];
 
-const WORK_DAYS = [1, 2, 3, 4, 5]; // lunes a viernes (0=domingo)
-const WORK_START_HOUR = 9;
-const WORK_END_HOUR = 18;
-const SLOT_MINUTES = 60;
+function ensureImgDir() {
+  if (!fs.existsSync(IMG_DIR)) fs.mkdirSync(IMG_DIR, { recursive: true });
+}
 
-// ---------------------------------------------------------------------------
-// Webpay Plus (Transbank)
-// En integration usa las credenciales de prueba oficiales automaticamente.
-// En production, usa TBK_COMMERCE_CODE y TBK_API_KEY del .env
-// ---------------------------------------------------------------------------
-const isProd = (process.env.TBK_ENV || 'integration') === 'production';
-const webpay = new WebpayPlus.Transaction(
-  isProd
-    ? new Options(process.env.TBK_COMMERCE_CODE, process.env.TBK_API_KEY, Environment.Production)
-    : new Options(IntegrationApiKeys.WEBPAY, IntegrationApiKeys.WEBPAY, Environment.Integration)
-);
-
-// ---------------------------------------------------------------------------
-// Utilidades de agenda
-// ---------------------------------------------------------------------------
-function generateSlotsForDate(dateStr) {
-  const date = new Date(dateStr + 'T00:00:00');
-  if (!WORK_DAYS.includes(date.getDay())) return [];
-
-  const slots = [];
-  for (let h = WORK_START_HOUR; h < WORK_END_HOUR; h++) {
-    for (let m = 0; m < 60; m += SLOT_MINUTES) {
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    }
+function getPhotos() {
+  ensureImgDir();
+  if (!fs.existsSync(PHOTOS_FILE)) {
+    fs.writeFileSync(PHOTOS_FILE, JSON.stringify({ hero: null, about: null, consulta: null }, null, 2));
   }
+  try {
+    return JSON.parse(fs.readFileSync(PHOTOS_FILE, 'utf8'));
+  } catch {
+    return { hero: null, about: null, consulta: null };
+  }
+}
 
-  const taken = new Set(db.getBookingsByDate(dateStr).map(b => b.time));
-  const now = new Date();
-  const isToday = dateStr === now.toISOString().slice(0, 10);
-
-  return slots.filter(t => {
-    if (taken.has(t)) return false;
-    if (isToday) {
-      const [h, m] = t.split(':').map(Number);
-      const slotDate = new Date(date);
-      slotDate.setHours(h, m, 0, 0);
-      if (slotDate.getTime() < now.getTime()) return false;
-    }
-    return true;
-  });
+function savePhotos(photos) {
+  fs.writeFileSync(PHOTOS_FILE, JSON.stringify(photos, null, 2));
 }
 
 // ---------------------------------------------------------------------------
-// API: servicios y disponibilidad
+// API de solo lectura: la usan ambos servidores.
+// En el público, la consume el sitio (main.js). En el admin, la usa el
+// propio panel para cargar los valores actuales en los formularios.
 // ---------------------------------------------------------------------------
-app.get('/api/services', (req, res) => {
-  res.json(SERVICES);
+app.get('/api/content', (req, res) => {
+  res.json({
+    config: db.getConfig(),
+    posts: db.getPosts(),
+    photos: getPhotos(),
+  });
 });
 
-app.get('/api/availability', (req, res) => {
-  const { date } = req.query;
-  if (!date) return res.status(400).json({ error: 'Falta el parámetro date (YYYY-MM-DD)' });
-  res.json({ date, slots: generateSlotsForDate(date) });
-});
+if (ROLE === 'public') {
+  // ---------------------------------------------------------------------
+  // SERVIDOR PÚBLICO: el que tiene el dominio. Sirve el sitio y solo
+  // recibe datos ya armados del servidor admin — no tiene ninguna ruta
+  // de edición propia, así que aunque alguien adivine un secreto, aquí
+  // no hay panel ni formularios que atacar.
+  // ---------------------------------------------------------------------
+  app.use(express.static(path.join(__dirname, 'public')));
 
-// ---------------------------------------------------------------------------
-// API: crear reserva + iniciar pago en Webpay
-// ---------------------------------------------------------------------------
-app.post('/api/bookings', async (req, res) => {
-  try {
-    const { serviceId, date, time, name, email, phone, address, notes } = req.body;
+  const SYNC_SECRET = process.env.SYNC_SECRET;
 
-    const service = SERVICES[serviceId];
-    if (!service) return res.status(400).json({ error: 'Servicio inválido' });
-    if (!date || !time || !name || !email || !phone) {
-      return res.status(400).json({ error: 'Faltan datos obligatorios' });
+  function requireSync(req, res, next) {
+    if (!SYNC_SECRET) {
+      return res.status(500).json({ error: 'Este servidor no tiene SYNC_SECRET configurado.' });
     }
-
-    const freeSlots = generateSlotsForDate(date);
-    if (!freeSlots.includes(time)) {
-      return res.status(409).json({ error: 'Ese horario ya no está disponible, elige otro.' });
+    if (req.headers['x-sync-secret'] !== SYNC_SECRET) {
+      return res.status(401).json({ error: 'Secreto de sincronización inválido.' });
     }
+    next();
+  }
 
-    const bookingId = uuidv4();
-    const buyOrder = bookingId.replace(/-/g, '').slice(0, 20);
-    const sessionId = uuidv4().slice(0, 20);
-    const returnUrl = `${req.protocol}://${req.get('host')}/api/payment/commit`;
+  // El servidor admin llama esto cada vez que se guardan precios/zonas/posts.
+  app.put('/api/sync/config', requireSync, (req, res) => {
+    const { config, posts } = req.body;
+    if (!config) return res.status(400).json({ error: 'Falta config' });
+    db.saveConfig(config);
+    if (posts) db.savePosts(posts);
+    res.json({ ok: true });
+  });
 
-    const booking = {
-      id: bookingId,
-      serviceId,
-      serviceName: service.name,
-      price: service.price,
-      date,
-      time,
-      name,
-      email,
-      phone,
-      address: address || '',
-      notes: notes || '',
-      status: 'pending_payment',
-      buyOrder,
-      createdAt: new Date().toISOString(),
+  // El servidor admin llama esto cada vez que se sube/reemplaza una foto.
+  app.post('/api/sync/photo', requireSync, (req, res) => {
+    const { slot, filename, dataBase64 } = req.body;
+    if (!VALID_SLOTS.includes(slot) || !filename || !dataBase64) {
+      return res.status(400).json({ error: 'Faltan datos de la foto.' });
+    }
+    ensureImgDir();
+    const photos = getPhotos();
+    const oldFile = photos[slot] && photos[slot] !== filename
+      ? path.join(IMG_DIR, photos[slot])
+      : null;
+    fs.writeFileSync(path.join(IMG_DIR, filename), Buffer.from(dataBase64, 'base64'));
+    if (oldFile) fs.unlink(oldFile, () => {}); // se borra DESPUÉS de escribir el nuevo archivo
+    photos[slot] = filename;
+    savePhotos(photos);
+    res.json({ ok: true });
+  });
+
+} else if (ROLE === 'admin') {
+  // ---------------------------------------------------------------------
+  // SERVIDOR ADMIN: lo usan Diego y Graciela. Tiene el panel y toda la
+  // lógica de edición. No sirve el sitio público ni sus rutas — solo
+  // este panel. Cada guardado exitoso se reenvía automáticamente al
+  // servidor público vía /api/sync/*.
+  // ---------------------------------------------------------------------
+  app.use(express.static(path.join(__dirname, 'admin')));
+
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'cambia-esta-clave';
+  const SYNC_SECRET = process.env.SYNC_SECRET;
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL || '').replace(/\/+$/, '');
+
+  function requireAdmin(req, res, next) {
+    const pass = req.body.password || req.query.password || req.headers['x-admin-password'];
+    if (pass !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Clave incorrecta' });
+    next();
+  }
+
+  async function pushConfigToPublic() {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
+        body: JSON.stringify({ config: db.getConfig(), posts: db.getPosts() }),
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function pushPhotoToPublic(slot, filename) {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const data = fs.readFileSync(path.join(IMG_DIR, filename));
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/photo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
+        body: JSON.stringify({ slot, filename, dataBase64: data.toString('base64') }),
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => { ensureImgDir(); cb(null, IMG_DIR); },
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, `${req.body.slot}-${Date.now()}${ext}`);
+      },
+    }),
+    limits: { fileSize: 8 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (!VALID_SLOTS.includes(req.body.slot)) return cb(new Error('Slot inválido'));
+      if (!/^image\/(jpeg|png|webp)$/.test(file.mimetype)) return cb(new Error('Formato no soportado'));
+      cb(null, true);
+    },
+  });
+
+  app.post('/api/admin/login', requireAdmin, (req, res) => {
+    res.json({ ok: true });
+  });
+
+  app.put('/api/admin/config', requireAdmin, async (req, res) => {
+    const { config } = req.body;
+    if (!config || typeof config !== 'object') {
+      return res.status(400).json({ error: 'Falta el objeto config' });
+    }
+    db.saveConfig(config);
+    const sync = await pushConfigToPublic();
+    res.json({ ok: true, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
+
+  app.post('/api/admin/posts', requireAdmin, async (req, res) => {
+    const { titulo, extracto, fecha, url } = req.body;
+    if (!titulo || !extracto) return res.status(400).json({ error: 'Falta título o extracto' });
+    const post = {
+      id: Date.now().toString(36),
+      titulo,
+      extracto,
+      fecha: fecha || new Date().toISOString().slice(0, 10),
+      url: url || '',
     };
-    db.addBooking(booking);
+    db.addPost(post);
+    const sync = await pushConfigToPublic();
+    res.json({ ...post, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
 
-    const tbkResponse = await webpay.create(buyOrder, sessionId, service.price, returnUrl);
+  app.delete('/api/admin/posts/:id', requireAdmin, async (req, res) => {
+    db.deletePost(req.params.id);
+    const sync = await pushConfigToPublic();
+    res.json({ ok: true, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
 
-    db.updateBooking(bookingId, { tbkToken: tbkResponse.token });
+  app.post('/api/admin/photos', (req, res) => {
+    upload.single('foto')(req, res, async (err) => {
+      if (err) return res.status(400).json({ error: err.message });
 
-    res.json({
-      bookingId,
-      redirectUrl: tbkResponse.url,
-      token: tbkResponse.token,
+      const pass = req.body.password || req.headers['x-admin-password'];
+      if (pass !== ADMIN_PASSWORD) {
+        if (req.file) fs.unlink(req.file.path, () => {});
+        return res.status(401).json({ error: 'Clave incorrecta' });
+      }
+      if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
+
+      const slot = req.body.slot;
+      const photos = getPhotos();
+      if (photos[slot]) {
+        fs.unlink(path.join(IMG_DIR, photos[slot]), () => {});
+      }
+      photos[slot] = req.file.filename;
+      savePhotos(photos);
+
+      const sync = await pushPhotoToPublic(slot, req.file.filename);
+      res.json({ ok: true, photos, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
     });
-  } catch (err) {
-    console.error('Error creando reserva/pago:', err);
-    res.status(500).json({ error: 'No se pudo iniciar el pago. Intenta nuevamente.' });
-  }
-});
+  });
 
-// ---------------------------------------------------------------------------
-// Webpay redirige aquí (POST) despues de que la persona paga o cancela.
-// ---------------------------------------------------------------------------
-app.post('/api/payment/commit', async (req, res) => {
-  const token = req.body.token_ws;
-  if (!token) return res.redirect('/reserva-fallida.html');
-
-  try {
-    const result = await webpay.commit(token);
-    const bookings = db.readAll();
-    const booking = bookings.find(b => b.tbkToken === token);
-
-    if (result.status === 'AUTHORIZED' && result.response_code === 0) {
-      if (booking) db.updateBooking(booking.id, { status: 'confirmed', tbkResult: result });
-      return res.redirect(`/reserva-exitosa.html?id=${booking ? booking.id : ''}`);
-    } else {
-      if (booking) db.updateBooking(booking.id, { status: 'payment_failed', tbkResult: result });
-      return res.redirect('/reserva-fallida.html');
+  // Reintento manual: reenvía TODO (config, posts y las 3 fotos) al sitio
+  // público. Útil si un guardado anterior no se pudo publicar.
+  app.post('/api/admin/resync', requireAdmin, async (req, res) => {
+    const configSync = await pushConfigToPublic();
+    const photos = getPhotos();
+    const photoResults = {};
+    for (const slot of VALID_SLOTS) {
+      if (photos[slot]) {
+        const r = await pushPhotoToPublic(slot, photos[slot]);
+        photoResults[slot] = r.ok;
+      }
     }
-  } catch (err) {
-    console.error('Error confirmando pago:', err);
-    return res.redirect('/reserva-fallida.html');
-  }
-});
+    res.json({ ok: true, config: configSync.ok, configError: configSync.error, photos: photoResults });
+  });
 
-app.get('/api/bookings/:id', (req, res) => {
-  const booking = db.getBooking(req.params.id);
-  if (!booking) return res.status(404).json({ error: 'No encontrada' });
-  res.json(booking);
-});
-
-// ---------------------------------------------------------------------------
-// Panel simple de administración (protegido por clave)
-// ---------------------------------------------------------------------------
-app.get('/api/admin/bookings', (req, res) => {
-  const pass = req.query.password;
-  if (pass !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Clave incorrecta' });
-  res.json(db.readAll().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)));
-});
+} else {
+  console.error(`ROLE desconocido: "${ROLE}". Usa ROLE=public o ROLE=admin en las variables de entorno.`);
+  process.exit(1);
+}
 
 app.listen(PORT, () => {
-  console.log(`Sitio de Graciela corriendo en http://localhost:${PORT}`);
-  console.log(`Modo de pago Webpay: ${isProd ? 'PRODUCCIÓN' : 'INTEGRACIÓN (pruebas)'}`);
+  console.log(`Servidor de Matronalactancia (rol: ${ROLE}) corriendo en el puerto ${PORT}`);
 });

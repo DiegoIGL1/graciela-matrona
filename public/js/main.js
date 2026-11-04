@@ -1,138 +1,170 @@
-let SERVICES = {};
-let selectedTime = null;
-
-async function loadServices() {
-  const res = await fetch('/api/services');
-  SERVICES = await res.json();
-
-  const grid = document.getElementById('services-grid');
-  const select = document.getElementById('serviceId');
-  grid.innerHTML = '';
-  select.innerHTML = '';
-
-  Object.entries(SERVICES).forEach(([id, s]) => {
-    grid.innerHTML += `
-      <div class="service-card">
-        <h3>${s.name}</h3>
-        <div class="price">$${s.price.toLocaleString('es-CL')}</div>
-        <div class="duration">${s.duration} minutos</div>
-        <button type="button" onclick="pickService('${id}')">Reservar</button>
-      </div>`;
-
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = `${s.name} — $${s.price.toLocaleString('es-CL')}`;
-    select.appendChild(opt);
-  });
+function formatCLP(n) {
+  return '$' + Number(n).toLocaleString('es-CL');
 }
 
-function pickService(id) {
-  document.getElementById('serviceId').value = id;
-  document.getElementById('reserva').scrollIntoView({ behavior: 'smooth' });
+function waLink(telefono, mensaje) {
+  return `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
 }
 
-async function loadSlots(date) {
-  const slotsDiv = document.getElementById('slots');
-  selectedTime = null;
-  document.getElementById('time').value = '';
+function setPhoto(containerId, filename) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (filename) {
+    el.innerHTML = `<img src="/img/${filename}" alt="">`;
+  }
+  // Si no hay foto, se deja el placeholder que ya está en el HTML.
+}
 
-  if (!date) {
-    slotsDiv.innerHTML = '<span class="note">Elige una fecha para ver horarios.</span>';
-    return;
+function renderServiceCard(servicio, negocio) {
+  let precioHtml = '';
+  if (servicio.tipoPrecio === 'fijo') {
+    precioHtml = `<div class="precio">${formatCLP(servicio.precio)}</div>`;
+  } else if (servicio.tipoPrecio === 'por_zona') {
+    precioHtml = `<div class="precio">${servicio.notaPrecio}</div>`;
+  } else if (servicio.tipoPrecio === 'igual_asesoria') {
+    precioHtml = `<div class="precio" style="font-size:1rem;">${servicio.notaPrecio}</div>`;
+  } else if (servicio.tipoPrecio === 'proximamente') {
+    precioHtml = `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
+  } else if (servicio.tipoPrecio === 'por_hora') {
+    precioHtml = servicio.precioHora
+      ? `<div class="precio">${formatCLP(servicio.precioHora)} / hora</div>`
+      : `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
+  } else if (servicio.tipoPrecio === 'paquete') {
+    precioHtml = servicio.precio
+      ? `<div class="precio">${servicio.notaPrecio || formatCLP(servicio.precio)}</div>`
+      : `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
   }
 
-  slotsDiv.innerHTML = '<span class="note">Cargando horarios...</span>';
-  const res = await fetch(`/api/availability?date=${date}`);
-  const data = await res.json();
+  const duracionHtml = servicio.duracion ? `<div class="duracion">${servicio.duracion}</div>` : '';
+  const incluyeHtml = (servicio.incluye || []).map(i => `<li>${i}</li>`).join('');
 
-  if (!data.slots || data.slots.length === 0) {
-    slotsDiv.innerHTML = '<span class="note">No hay horarios disponibles ese día. Prueba otra fecha.</span>';
-    return;
-  }
+  const mensaje = `Hola Graciela, quiero información sobre: ${servicio.nombre}`;
+  const esDisponible = servicio.tipoPrecio !== 'proximamente'
+    && !(servicio.tipoPrecio === 'por_hora' && !servicio.precioHora)
+    && !(servicio.tipoPrecio === 'paquete' && !servicio.precio);
+  const btnHtml = esDisponible
+    ? `<a class="btn btn-primary" href="${waLink(negocio.whatsapp, mensaje)}" target="_blank" rel="noopener">Agenda por WhatsApp</a>`
+    : `<span class="btn btn-secondary" style="opacity:.7;cursor:default;">Próximamente</span>`;
 
-  slotsDiv.innerHTML = '';
-  data.slots.forEach(t => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'slot-btn';
-    btn.textContent = t;
-    btn.onclick = () => {
-      document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedTime = t;
-      document.getElementById('time').value = t;
-    };
-    slotsDiv.appendChild(btn);
+  return `
+    <div class="service-card">
+      <h3>${servicio.nombre}</h3>
+      ${duracionHtml}
+      ${precioHtml}
+      <ul>${incluyeHtml}</ul>
+      ${btnHtml}
+    </div>`;
+}
+
+function renderZonasTable(zonas) {
+  const tbody = document.querySelector('#zonas-table tbody');
+  tbody.innerHTML = zonas.map(z => `
+    <tr>
+      <td>${z.etiqueta}</td>
+      <td>${z.comunas.join(', ')}</td>
+      <td class="precio">${formatCLP(z.precio)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderComunaSelect(zonas) {
+  const select = document.getElementById('comuna-select');
+  zonas.forEach(z => {
+    z.comunas.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = `${c}|${z.precio}|${z.etiqueta}`;
+      opt.textContent = c;
+      select.appendChild(opt);
+    });
+  });
+
+  select.addEventListener('change', () => {
+    const resultado = document.getElementById('comuna-resultado');
+    if (!select.value) { resultado.textContent = ''; return; }
+    const [comuna, precio, etiqueta] = select.value.split('|');
+    resultado.textContent = `${comuna} está en ${etiqueta}: ${formatCLP(precio)}`;
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadServices();
+function renderTemas(temas) {
+  const grid = document.getElementById('temas-grid');
+  grid.innerHTML = temas.map(t => `
+    <div class="tema-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-7-4.4-9.5-9C1 7.5 3 4 6.5 4 9 4 11 5.8 12 7.5 13 5.8 15 4 17.5 4 21 4 23 7.5 21.5 11 19 15.6 12 21 12 21z"/></svg>
+      <span>${t}</span>
+    </div>
+  `).join('');
+}
 
-  const dateInput = document.getElementById('date');
-  const today = new Date().toISOString().slice(0, 10);
-  dateInput.min = today;
-  dateInput.addEventListener('change', () => loadSlots(dateInput.value));
+function renderPosts(posts) {
+  const grid = document.getElementById('posts-grid');
+  if (!posts || posts.length === 0) {
+    grid.innerHTML = `<div class="empty-state">Pronto encontrarás aquí artículos cortos de evidencia sobre lactancia, cada lunes.</div>`;
+    return;
+  }
+  grid.innerHTML = posts.map(p => `
+    <div class="post-card">
+      <div class="fecha">${p.fecha}</div>
+      <h3>${p.titulo}</h3>
+      <p>${p.extracto}</p>
+      ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener">Leer más</a>` : ''}
+    </div>
+  `).join('');
+}
 
-  document.getElementById('booking-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('form-msg');
-    const btn = document.getElementById('submit-btn');
-    msg.textContent = '';
-    msg.className = 'form-msg';
+function renderCondiciones(condiciones) {
+  document.getElementById('condiciones-list').innerHTML =
+    condiciones.map(c => `<li>${c}</li>`).join('');
+}
 
-    if (!selectedTime) {
-      msg.textContent = 'Elige un horario disponible.';
-      msg.classList.add('error');
-      return;
-    }
+async function init() {
+  const res = await fetch('/api/content');
+  const { config, posts, photos } = await res.json();
+  const { negocio, servicios, zonas, temas, condiciones, sobreMi } = config;
 
-    const payload = {
-      serviceId: document.getElementById('serviceId').value,
-      date: document.getElementById('date').value,
-      time: selectedTime,
-      name: document.getElementById('name').value,
-      email: document.getElementById('email').value,
-      phone: document.getElementById('phone').value,
-      address: document.getElementById('address').value,
-      notes: document.getElementById('notes').value,
-    };
+  document.getElementById('anio').textContent = new Date().getFullYear();
 
-    btn.disabled = true;
-    btn.textContent = 'Redirigiendo a Webpay...';
+  // Hero y textos "Sobre mí"
+  document.getElementById('sobre-mi-corta').textContent = sobreMi.corta;
+  document.getElementById('sobre-mi-completa').innerHTML =
+    sobreMi.completa.map(p => `<p>${p}</p>`).join('');
 
-    try {
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+  // Fotos
+  setPhoto('foto-hero', photos.hero);
+  setPhoto('foto-about', photos.about);
 
-      if (!res.ok) {
-        msg.textContent = data.error || 'No se pudo crear la reserva.';
-        msg.classList.add('error');
-        btn.disabled = false;
-        btn.textContent = 'Ir a pagar con Webpay';
-        return;
-      }
-
-      // Redirección estándar de Webpay Plus: formulario POST con el token.
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = data.redirectUrl;
-      const tokenInput = document.createElement('input');
-      tokenInput.type = 'hidden';
-      tokenInput.name = 'token_ws';
-      tokenInput.value = data.token;
-      form.appendChild(tokenInput);
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err) {
-      msg.textContent = 'Error de conexión. Intenta nuevamente.';
-      msg.classList.add('error');
-      btn.disabled = false;
-      btn.textContent = 'Ir a pagar con Webpay';
-    }
+  // Botones de WhatsApp
+  const defaultMsg = negocio.whatsappMensajeDefault;
+  ['hero-whatsapp', 'contacto-whatsapp', 'float-whatsapp', 'zona-whatsapp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.href = waLink(negocio.whatsapp, defaultMsg);
   });
-});
+  document.getElementById('giftcard-whatsapp').href =
+    waLink(negocio.whatsapp, 'Hola Graciela, quiero comprar una gift card de asesoría de lactancia');
+
+  // Servicios
+  document.getElementById('services-grid').innerHTML =
+    servicios.map(s => renderServiceCard(s, negocio)).join('');
+
+  // Zonas / comunas
+  renderZonasTable(zonas);
+  renderComunaSelect(zonas);
+
+  // Temas
+  renderTemas(temas);
+
+  // Posts
+  renderPosts(posts);
+
+  // Condiciones
+  renderCondiciones(condiciones);
+
+  // Contacto
+  document.getElementById('contacto-horario').textContent = negocio.horario;
+  document.getElementById('contacto-cobertura').textContent = negocio.cobertura;
+  const ig = document.getElementById('contacto-instagram');
+  ig.textContent = negocio.instagram;
+  ig.href = negocio.instagramUrl;
+}
+
+init();

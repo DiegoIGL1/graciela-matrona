@@ -1,56 +1,75 @@
-// Almacenamiento simple basado en archivo JSON.
-// Suficiente para el volumen de reservas de un consultorio/matrona individual.
-// Si el negocio crece mucho, esto se puede migrar a una base real (Postgres/Supabase)
+// Almacenamiento simple basado en archivos JSON.
+// Suficiente para el sitio de una matrona independiente.
+// Si el negocio crece, esto se puede migrar a una base real (Postgres/Supabase)
 // sin cambiar el resto del sitio: solo hay que reemplazar las funciones de este archivo.
 
 const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, 'data');
-const FILE = path.join(DATA_DIR, 'bookings.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
+const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
 
-function ensureFile() {
+function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, '[]', 'utf8');
 }
 
-function readAll() {
-  ensureFile();
-  const raw = fs.readFileSync(FILE, 'utf8');
+function readJson(file, fallback) {
+  ensureDir();
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, JSON.stringify(fallback, null, 2), 'utf8');
+    return fallback;
+  }
   try {
-    return JSON.parse(raw);
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch {
-    return [];
+    return fallback;
   }
 }
 
-function writeAll(bookings) {
-  ensureFile();
-  fs.writeFileSync(FILE, JSON.stringify(bookings, null, 2), 'utf8');
+function writeJson(file, data) {
+  ensureDir();
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
 }
 
-function addBooking(booking) {
-  const bookings = readAll();
-  bookings.push(booking);
-  writeAll(bookings);
-  return booking;
+// --- Config (servicios, zonas, textos) ---
+function getConfig() {
+  return readJson(CONFIG_FILE, {});
 }
 
-function updateBooking(id, patch) {
-  const bookings = readAll();
-  const idx = bookings.findIndex(b => b.id === id);
-  if (idx === -1) return null;
-  bookings[idx] = { ...bookings[idx], ...patch };
-  writeAll(bookings);
-  return bookings[idx];
+function saveConfig(config) {
+  writeJson(CONFIG_FILE, config);
+  return config;
 }
 
-function getBooking(id) {
-  return readAll().find(b => b.id === id) || null;
+// --- Posts de "Lunes de Investigación" ---
+function getPosts() {
+  return readJson(POSTS_FILE, []);
 }
 
-function getBookingsByDate(date) {
-  return readAll().filter(b => b.date === date && b.status !== 'cancelled');
+function savePosts(posts) {
+  writeJson(POSTS_FILE, posts);
+  return posts;
 }
 
-module.exports = { readAll, addBooking, updateBooking, getBooking, getBookingsByDate };
+function addPost(post) {
+  const posts = getPosts();
+  posts.unshift(post);
+  savePosts(posts);
+  return post;
+}
+
+function deletePost(id) {
+  const posts = getPosts().filter(p => p.id !== id);
+  savePosts(posts);
+  return posts;
+}
+
+module.exports = {
+  getConfig,
+  saveConfig,
+  getPosts,
+  savePosts,
+  addPost,
+  deletePost,
+};

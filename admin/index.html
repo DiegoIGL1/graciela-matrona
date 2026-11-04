@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de administración · Matronalactancia</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Nunito:wght@400;700&display=swap');
+
+  :root {
+    --crema: #FDF6F3;
+    --frambuesa: #8C1D40;
+    --rosa: #C2456B;
+    --rosa-texto: #A8335A;
+    --pastel: #F6D3DB;
+    --texto: #4A2A33;
+    --texto-suave: #6E4A55;
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--crema); color: var(--texto);
+    font-family: 'Nunito', sans-serif; padding-bottom: 60px;
+  }
+  h1, h2 { font-family: 'Playfair Display', serif; font-weight: 800; color: var(--frambuesa); }
+  .admin-wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .admin-card { background: #fff; border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: 0 6px 18px rgba(140,29,64,0.08); }
+  .admin-card h2 { font-size: 1.2rem; margin-top: 0; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.9rem; }
+  .field input, .field textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--pastel);
+    font-family: 'Nunito', sans-serif; font-size: 0.95rem; background: var(--crema); color: var(--texto);
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'Nunito', sans-serif; font-weight: 700; border: none; border-radius: 999px;
+    padding: 12px 22px; cursor: pointer; text-align: center;
+  }
+  .btn-primary { background: var(--frambuesa); color: #fff; }
+  .btn-secondary { background: var(--pastel); color: var(--frambuesa); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .row .field { flex: 1; min-width: 160px; }
+  .msg { font-size: 0.85rem; margin-top: 8px; }
+  .msg.ok { color: #257a3e; }
+  .msg.warn { color: #9a7100; }
+  .msg.error { color: #a33; }
+  .zona-edit { border-bottom: 1px solid var(--pastel); padding-bottom: 14px; margin-bottom: 14px; }
+  .post-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--pastel); }
+  .post-row button { background: none; border: none; color: #a33; cursor: pointer; font-weight: 700; }
+  .estado { font-size: 0.8rem; padding: 10px 14px; border-radius: 10px; margin-bottom: 20px; }
+  .estado.ok { background: #dff5e1; color: #257a3e; }
+  .estado.warn { background: #fff3d6; color: #9a7100; }
+  #app { display: none; }
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <h1 style="text-align:center;">Panel de administración</h1>
+  <p style="text-align:center;color:var(--texto-suave);font-size:0.85rem;margin-top:-8px;">Matronalactancia — este panel no es visible para el público</p>
+
+  <div class="admin-card" id="login-card">
+    <h2>Ingresa tu clave</h2>
+    <div class="field">
+      <label for="password">Clave</label>
+      <input type="password" id="password">
+    </div>
+    <button class="btn btn-primary" onclick="login()">Entrar</button>
+    <p class="msg error" id="login-msg"></p>
+  </div>
+
+  <div id="app">
+    <div class="estado" id="estado-publicacion">Comprobando conexión con el sitio público…</div>
+
+    <div class="admin-card">
+      <h2>Fotos del sitio</h2>
+      <p style="font-size:0.85rem;color:var(--texto-suave);">Sube o reemplaza la foto. Se publica automáticamente en el sitio, sin que tengas que cambiar ningún link.</p>
+      <div class="field"><label>Foto de inicio (hero)</label><input type="file" id="foto-hero" accept="image/*"></div>
+      <div class="field"><label>Foto de "Sobre mí"</label><input type="file" id="foto-about" accept="image/*"></div>
+      <div class="field"><label>Foto de una asesoría (consulta)</label><input type="file" id="foto-consulta" accept="image/*"></div>
+      <button class="btn btn-primary" onclick="subirFotos()">Guardar y publicar fotos</button>
+      <p class="msg" id="fotos-msg"></p>
+    </div>
+
+    <div class="admin-card">
+      <h2>Precio online y destete</h2>
+      <div class="field"><label>Precio asesoría online ($)</label><input type="number" id="precio-online"></div>
+      <div class="field"><label>Precio destete respetuoso ($, vacío = "Próximamente")</label><input type="number" id="precio-destete"></div>
+      <div class="row">
+        <div class="field"><label>Cuidados a domicilio de recién nacidos — precio del paquete ($, vacío = "Próximamente")</label><input type="number" id="precio-paquete-cuidados"></div>
+        <div class="field" style="max-width:140px;"><label>Horas incluidas</label><input type="number" id="horas-paquete-cuidados"></div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Zonas y precios a domicilio</h2>
+      <div id="zonas-editor"></div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Guardar y publicar cambios de precios y zonas</h2>
+      <button class="btn btn-primary" onclick="guardarConfig()">Guardar y publicar</button>
+      <p class="msg" id="config-msg"></p>
+    </div>
+
+    <div class="admin-card">
+      <h2>Lunes de Investigación</h2>
+      <div class="field"><label>Título</label><input type="text" id="post-titulo"></div>
+      <div class="field"><label>Extracto</label><textarea id="post-extracto" rows="3"></textarea></div>
+      <div class="field"><label>Link (opcional, ej. post de Instagram)</label><input type="text" id="post-url"></div>
+      <button class="btn btn-primary" onclick="agregarPost()">Publicar</button>
+      <p class="msg" id="post-msg"></p>
+      <div id="posts-list" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Reenviar todo al sitio público</h2>
+      <p style="font-size:0.85rem;color:var(--texto-suave);">Úsalo si guardaste algo y el aviso dijo que no se pudo publicar (por ejemplo, porque el sitio público estaba despertando o caído). Vuelve a enviar los precios, zonas, posts y fotos actuales.</p>
+      <button class="btn btn-secondary" onclick="reenviarTodo()">Reenviar ahora</button>
+      <p class="msg" id="resync-msg"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+let PASSWORD = '';
+let CONFIG = null;
+
+function formatCLPAdmin(n) {
+  return '$' + Number(n).toLocaleString('es-CL');
+}
+
+function mostrarEstadoPublicacion(publicado, error) {
+  const el = document.getElementById('estado-publicacion');
+  if (publicado) {
+    el.className = 'estado ok';
+    el.textContent = 'Conectado con el sitio público. Los cambios se publican al instante.';
+  } else {
+    el.className = 'estado warn';
+    el.textContent = 'No se pudo publicar el último cambio en el sitio público' + (error ? `: ${error}` : '') + '. Usa "Reenviar ahora" más abajo cuando se resuelva.';
+  }
+}
+
+async function login() {
+  PASSWORD = document.getElementById('password').value;
+  const msg = document.getElementById('login-msg');
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  if (!res.ok) { msg.textContent = 'Clave incorrecta.'; return; }
+  msg.textContent = '';
+  document.getElementById('login-card').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await cargarTodo();
+}
+
+async function cargarTodo() {
+  const res = await fetch('/api/content');
+  const data = await res.json();
+  CONFIG = data.config;
+
+  const online = CONFIG.servicios.find(s => s.id === 'online');
+  const destete = CONFIG.servicios.find(s => s.id === 'destete');
+  const cuidados = CONFIG.servicios.find(s => s.id === 'cuidados_recien_nacido');
+  document.getElementById('precio-online').value = online.precio;
+  document.getElementById('precio-destete').value = destete.precio || '';
+  if (cuidados) {
+    document.getElementById('precio-paquete-cuidados').value = cuidados.precio || '';
+    document.getElementById('horas-paquete-cuidados').value = cuidados.horasPaquete || '';
+  }
+
+  const zonasDiv = document.getElementById('zonas-editor');
+  zonasDiv.innerHTML = CONFIG.zonas.map((z, i) => `
+    <div class="zona-edit">
+      <div class="row">
+        <div class="field"><label>Etiqueta</label><input type="text" data-zona="${i}" data-field="etiqueta" value="${z.etiqueta}"></div>
+        <div class="field"><label>Precio ($)</label><input type="number" data-zona="${i}" data-field="precio" value="${z.precio}"></div>
+      </div>
+      <div class="field"><label>Comunas (separadas por coma)</label><input type="text" data-zona="${i}" data-field="comunas" value="${z.comunas.join(', ')}"></div>
+    </div>
+  `).join('');
+
+  renderPosts(data.posts);
+
+  // Primer chequeo de conexión con el sitio público: reenvía la config actual
+  // (no cambia nada visualmente si ya estaba todo publicado).
+  const sync = await reenviarConfigSilencioso();
+  mostrarEstadoPublicacion(sync.ok, sync.error);
+}
+
+function renderPosts(posts) {
+  const list = document.getElementById('posts-list');
+  if (!posts.length) { list.innerHTML = '<p style="font-size:0.85rem;color:var(--texto-suave);">Aún no hay artículos.</p>'; return; }
+  list.innerHTML = posts.map(p => `
+    <div class="post-row">
+      <span>${p.fecha} — ${p.titulo}</span>
+      <button onclick="eliminarPost('${p.id}')">Eliminar</button>
+    </div>
+  `).join('');
+}
+
+async function reenviarConfigSilencioso() {
+  const res = await fetch('/api/admin/resync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  if (!res.ok) return { ok: false, error: 'clave inválida o error de red' };
+  const data = await res.json();
+  return { ok: !!data.config, error: data.config ? undefined : 'ver detalle en "Reenviar ahora"' };
+}
+
+async function guardarConfig() {
+  const msg = document.getElementById('config-msg');
+  const online = CONFIG.servicios.find(s => s.id === 'online');
+  const destete = CONFIG.servicios.find(s => s.id === 'destete');
+  const cuidados = CONFIG.servicios.find(s => s.id === 'cuidados_recien_nacido');
+
+  online.precio = Number(document.getElementById('precio-online').value);
+
+  const precioDestete = document.getElementById('precio-destete').value;
+  if (precioDestete) {
+    destete.precio = Number(precioDestete);
+    destete.tipoPrecio = 'fijo';
+    destete.notaPrecio = undefined;
+  } else {
+    destete.precio = null;
+    destete.tipoPrecio = 'proximamente';
+    destete.notaPrecio = 'Próximamente';
+  }
+
+  if (cuidados) {
+    const precioPaquete = document.getElementById('precio-paquete-cuidados').value;
+    const horas = document.getElementById('horas-paquete-cuidados').value;
+    if (precioPaquete && horas) {
+      cuidados.precio = Number(precioPaquete);
+      cuidados.horasPaquete = Number(horas);
+      cuidados.duracion = `Paquete de ${horas} horas`;
+      cuidados.notaPrecio = `${formatCLPAdmin(precioPaquete)} por ${horas} horas`;
+    } else {
+      cuidados.precio = null;
+      cuidados.horasPaquete = null;
+      cuidados.duracion = 'Según la cantidad de horas contratadas';
+      cuidados.notaPrecio = 'Próximamente (precio a definir)';
+    }
+  }
+
+  document.querySelectorAll('[data-zona]').forEach(input => {
+    const i = Number(input.dataset.zona);
+    const field = input.dataset.field;
+    if (field === 'comunas') {
+      CONFIG.zonas[i].comunas = input.value.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (field === 'precio') {
+      CONFIG.zonas[i].precio = Number(input.value);
+    } else {
+      CONFIG.zonas[i][field] = input.value;
+    }
+  });
+
+  // El precio "desde" de la asesoría a domicilio = el menor precio de zona.
+  const domicilio = CONFIG.servicios.find(s => s.id === 'domicilio');
+  const minZona = Math.min(...CONFIG.zonas.map(z => z.precio));
+  domicilio.precioDesde = minZona;
+  domicilio.notaPrecio = `Desde $${minZona.toLocaleString('es-CL')} (según comuna)`;
+
+  const res = await fetch('/api/admin/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD, config: CONFIG }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    msg.className = 'msg error'; msg.textContent = 'No se pudo guardar.';
+    return;
+  }
+  if (data.publicado) {
+    msg.className = 'msg ok'; msg.textContent = 'Guardado y publicado en el sitio.';
+  } else {
+    msg.className = 'msg warn';
+    msg.textContent = `Guardado aquí, pero no se publicó en el sitio${data.error ? ' (' + data.error + ')' : ''}. Usa "Reenviar ahora".`;
+  }
+  mostrarEstadoPublicacion(data.publicado, data.error);
+}
+
+async function agregarPost() {
+  const titulo = document.getElementById('post-titulo').value.trim();
+  const extracto = document.getElementById('post-extracto').value.trim();
+  const url = document.getElementById('post-url').value.trim();
+  const msg = document.getElementById('post-msg');
+  if (!titulo || !extracto) { msg.className = 'msg error'; msg.textContent = 'Falta título o extracto.'; return; }
+
+  const res = await fetch('/api/admin/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD, titulo, extracto, url }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    document.getElementById('post-titulo').value = '';
+    document.getElementById('post-extracto').value = '';
+    document.getElementById('post-url').value = '';
+    msg.className = data.publicado ? 'msg ok' : 'msg warn';
+    msg.textContent = data.publicado ? 'Publicado.' : `Guardado aquí, pero no se publicó en el sitio${data.error ? ' (' + data.error + ')' : ''}.`;
+    mostrarEstadoPublicacion(data.publicado, data.error);
+    const content = await fetch('/api/content').then(r => r.json());
+    renderPosts(content.posts);
+  } else {
+    msg.className = 'msg error'; msg.textContent = 'No se pudo guardar.';
+  }
+}
+
+async function eliminarPost(id) {
+  const res = await fetch(`/api/admin/posts/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  mostrarEstadoPublicacion(data.publicado, data.error);
+  const content = await fetch('/api/content').then(r => r.json());
+  renderPosts(content.posts);
+}
+
+async function subirFotos() {
+  const msg = document.getElementById('fotos-msg');
+  const slots = ['hero', 'about', 'consulta'];
+  let subidas = 0;
+  let todasPublicadas = true;
+  let ultimoError = '';
+
+  for (const slot of slots) {
+    const input = document.getElementById(`foto-${slot}`);
+    const file = input.files[0];
+    if (!file) continue;
+
+    const formData = new FormData();
+    formData.append('password', PASSWORD);
+    formData.append('slot', slot);
+    formData.append('foto', file);
+
+    const res = await fetch('/api/admin/photos', { method: 'POST', body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      subidas++;
+      if (!data.publicado) { todasPublicadas = false; ultimoError = data.error || ''; }
+    }
+  }
+
+  if (subidas === 0) {
+    msg.className = 'msg error';
+    msg.textContent = 'Selecciona al menos una foto.';
+    return;
+  }
+  msg.className = todasPublicadas ? 'msg ok' : 'msg warn';
+  msg.textContent = todasPublicadas
+    ? `${subidas} foto(s) actualizadas y publicadas.`
+    : `${subidas} foto(s) guardadas aquí, pero no todas se publicaron${ultimoError ? ' (' + ultimoError + ')' : ''}. Usa "Reenviar ahora".`;
+  mostrarEstadoPublicacion(todasPublicadas, ultimoError);
+}
+
+async function reenviarTodo() {
+  const msg = document.getElementById('resync-msg');
+  msg.className = 'msg'; msg.textContent = 'Reenviando…';
+  const res = await fetch('/api/admin/resync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    msg.className = 'msg error'; msg.textContent = 'Clave inválida.';
+    return;
+  }
+  const fotosOk = Object.values(data.photos || {}).every(Boolean);
+  const todoOk = data.config && fotosOk;
+  msg.className = todoOk ? 'msg ok' : 'msg warn';
+  msg.textContent = todoOk ? 'Todo publicado correctamente.' : 'Algunas cosas no se pudieron publicar. Revisa tu conexión y vuelve a intentar en un momento.';
+  mostrarEstadoPublicacion(todoOk);
+}
+</script>
+</body>
+</html>

@@ -1,17 +1,23 @@
 {
   "name": "graciela-matrona",
-  "version": "1.0.0",
-  "description": "Sitio de agendamiento y pagos para Graciela - Matrona y Asesora de Lactancia",
+  "version": "3.0.0",
+  "description": "Sitio web de Matronalactancia (Graciela): servidor público de solo lectura + servidor admin que publica los cambios",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
+    "start:public": "cross-env ROLE=public node server.js",
+    "start:admin": "cross-env ROLE=admin node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "dotenv": "^16.4.5",
-    "nodemailer": "^6.9.14",
-    "transbank-sdk": "^6.1.0",
-    "uuid": "^9.0.1"
+    "multer": "^2.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }

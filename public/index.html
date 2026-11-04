@@ -3,232 +3,174 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Graciela · Matrona y Asesora de Lactancia</title>
+<title>Asesoría de lactancia a domicilio y online en Santiago | Matronalactancia</title>
+<meta name="description" content="Asesoría de lactancia a domicilio en Santiago y online a todo Chile. Matrona especialista, más de 10 años de experiencia. Agenda por WhatsApp.">
+<meta name="keywords" content="asesoría de lactancia, matrona de lactancia, grietas en el pezón, extracción de leche, Santiago, Puente Alto, online">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
 <header class="hero">
-  <div class="deco-arc" style="width:140px;height:140px;top:10px;left:2%;border-color:var(--rose);"></div>
-  <div class="deco-dot" style="background:var(--maroon); top:16px; left:118px;"></div>
-
-  <div class="hero-content">
-    <div class="hero-arc"></div>
-    <h1>Graciela</h1>
-    <p class="subtitle">MATRONA · LACTANCIA</p>
-    <p class="tagline">Acompaño tu lactancia. Sostengo tu confianza.</p>
+  <div class="hero-photo photo-frame" id="foto-hero">
+    <div class="placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <span>Foto de Graciela</span>
+    </div>
   </div>
-
-  <div class="hero-photo-card">
-    <img src="/img/mama-side.png" alt="Graciela, matrona y asesora de lactancia">
-  </div>
+  <h1>Acompañamiento que transforma tu lactancia</h1>
+  <p class="tagline">@matronalactancia</p>
+  <p class="corta" id="sobre-mi-corta">Matrona especialista en lactancia, con más de 10 años en neonatología y coordinadora de un Banco de Leche Humana. Te acompaño en tu casa o por videollamada para que vivas tu lactancia con confianza.</p>
+  <a class="btn btn-primary" id="hero-whatsapp" href="#" target="_blank" rel="noopener">Agenda por WhatsApp</a>
 </header>
-
-<nav class="highlights">
-  <button class="highlight" onclick="document.getElementById('sobre-mi').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
-    <span>Sobre mí</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('servicios').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><path d="M12 20s-7-4.4-9.5-9C1 7.5 3 4 6.5 4 9 4 11 5.8 12 7.5 13 5.8 15 4 17.5 4 21 4 23 7.5 21.5 11 19 15.6 12 20 12 20z"/></svg></div>
-    <span>Asesorías</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('lactancia').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><circle cx="9" cy="6" r="3"/><path d="M4 20c1-4 3-6 5-6h4c1.5 2 3 3 6 3"/></svg></div>
-    <span>Lactancia</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('recien-nacido').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><path d="M12 3c-3 2-4 5-2 7 1 1 1 2 0 3-2 2-1 5 2 8 3-3 4-6 2-8-1-1-1-2 0-3 2-2 1-5-2-7z"/></svg></div>
-    <span>Recién nacido</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('destete').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><path d="M12 4c-4 3-7 6-7 10a7 7 0 0014 0c0-4-3-7-7-10z"/><path d="M12 11v6"/></svg></div>
-    <span>Destete</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('banco-leche').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><path d="M9 3h6v4l2 2v10a1 1 0 01-1 1H8a1 1 0 01-1-1V9l2-2z"/><path d="M9 12h6"/></svg></div>
-    <span>Banco de leche</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('gift-card').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M3 12h18"/><path d="M12 8v12"/><path d="M12 8c-1.5-3-5-4-5-1.5S9 8 12 8z"/><path d="M12 8c1.5-3 5-4 5-1.5S15 8 12 8z"/></svg></div>
-    <span>Gift card</span>
-  </button>
-  <button class="highlight" onclick="document.getElementById('testimonios').scrollIntoView({behavior:'smooth'})">
-    <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="#6E1E3A" stroke-width="1.4"><path d="M4 5h12v8H8l-4 4V5z"/><path d="M20 9v9l-3-2h-4"/></svg></div>
-    <span>Testimonios</span>
-  </button>
-</nav>
 
 <main class="wrap">
 
+  <!-- Sobre mí -->
   <section id="sobre-mi">
-    <div class="deco-arc" style="width:80px;height:80px;top:10px;right:4%;border-color:var(--maroon);opacity:0.3;"></div>
-    <div class="about">
-      <div class="portrait"><img src="/img/mama-circle.png" alt="Graciela"></div>
-      <div>
+    <div class="about-grid">
+      <div class="photo-frame" id="foto-about">
+        <div class="placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+          <span>Foto de Graciela</span>
+        </div>
+      </div>
+      <div class="about-text">
         <p class="eyebrow">Sobre mí</p>
-        <h2 style="margin-top:6px;">Matrona dedicada a acompañar tu maternidad</h2>
-        <p>Soy matrona con foco en lactancia materna, control de embarazo y visitas a domicilio.
-        Trabajo contigo desde el embarazo hasta el postparto, resolviendo dudas con calma,
-        evidencia y mucho cariño — para que la lactancia deje de ser una fuente de estrés y
-        se convierta en un vínculo tranquilo.</p>
+        <h2>Graciela Lavanderos</h2>
+        <div id="sobre-mi-completa"></div>
       </div>
     </div>
   </section>
 
-  <section id="servicios">
+  <!-- Asesorías -->
+  <section id="asesorias">
     <div class="section-head">
-      <p class="eyebrow">Reserva tu hora</p>
-      <h2>Servicios</h2>
-      <p>Elige un servicio para ver los horarios disponibles y reservar con pago en línea.</p>
+      <p class="eyebrow">Asesorías</p>
+      <h2>Elige cómo acompañarte</h2>
+      <p>A domicilio o por videollamada — tú decides.</p>
     </div>
-    <div class="services-grid" id="services-grid">
-      <!-- Las tarjetas de servicio se generan desde /api/services -->
-    </div>
+    <div class="services-grid" id="services-grid"></div>
   </section>
 
-  <section id="lactancia">
-    <div class="deco-arc" style="width:100px;height:100px;top:0;right:2%;border-color:var(--terracotta);opacity:0.35;"></div>
-    <div class="side-photo-block">
-      <div class="text">
-        <p class="eyebrow">Lactancia</p>
-        <h2>Asesoría de lactancia materna</h2>
-        <p>Prendida, dolor, bajada de leche, relactación — te acompaño paso a paso.
-        Elige la modalidad que más te acomode: <strong>online</strong>, por videollamada desde donde estés,
-        o <strong>a domicilio</strong>, si prefieres que te visite en persona.</p>
-      </div>
-      <div class="photo">
-        <img src="/img/mama-consulta.png" alt="Graciela en una asesoría de lactancia">
-      </div>
-    </div>
-  </section>
-
-  <section id="recien-nacido">
-    <div class="deco-dot" style="background:var(--rose); top:4px; left:8%;"></div>
-    <div class="side-photo-block reverse">
-      <div class="text">
-        <p class="eyebrow">Recién nacido</p>
-        <h2>Cuidado de recién nacido</h2>
-        <p>Acompañamiento en los primeros días: control de peso, cuidados básicos, señales de
-        alarma y apoyo para que la llegada de tu bebé sea más tranquila.</p>
-      </div>
-      <div class="photo">
-        <img src="/img/mama-side.png" alt="Graciela, matrona">
-      </div>
-    </div>
-  </section>
-
-  <section id="destete">
-    <div class="deco-arc" style="width:90px;height:90px;bottom:6%;left:0;border-color:var(--rose);opacity:0.35;"></div>
+  <!-- Valor según tu comuna -->
+  <section id="valor-comuna">
     <div class="section-head">
-      <p class="eyebrow">Destete</p>
-      <h2>Taller de destete</h2>
-      <p>Un proceso guiado y respetuoso, a tu ritmo y el de tu bebé, con información basada
-      en evidencia para que la decisión sea tuya y te sientas acompañada.</p>
+      <p class="eyebrow">Asesoría a domicilio</p>
+      <h2>Valor según tu comuna</h2>
     </div>
+
+    <div class="zona-finder">
+      <label for="comuna-select">Busca tu comuna</label>
+      <select id="comuna-select">
+        <option value="">Selecciona tu comuna…</option>
+      </select>
+      <div class="resultado" id="comuna-resultado"></div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="zonas-table" id="zonas-table">
+        <thead><tr><th>Zona</th><th>Comunas</th><th>Precio</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="zona-nota">¿No ves tu comuna? <a href="#" id="zona-whatsapp">Escríbeme</a> y te confirmo el valor.</p>
   </section>
 
-  <section id="banco-leche">
+  <!-- Qué temas abordo -->
+  <section id="temas">
     <div class="section-head">
-      <p class="eyebrow">Banco de leche</p>
-      <h2>Asesoría sobre banco de leche</h2>
-      <p>Información y acompañamiento sobre extracción, conservación y donación de leche materna.</p>
+      <p class="eyebrow">En cada asesoría</p>
+      <h2>Qué temas abordo</h2>
+    </div>
+    <div class="temas-grid" id="temas-grid"></div>
+  </section>
+
+  <!-- Gift card -->
+  <section id="giftcard">
+    <div class="giftcard-box">
+      <p class="eyebrow" style="color:#fff;">Para regalar</p>
+      <h2>Gift card de lactancia</h2>
+      <p>Perfecta para baby showers y Navidad: un vale canjeable por la asesoría que la mamá elija, por el mismo valor de esa asesoría.</p>
+      <a class="btn btn-primary" id="giftcard-whatsapp" href="#" target="_blank" rel="noopener">Comprar gift card</a>
     </div>
   </section>
 
-  <section id="gift-card">
-    <div class="deco-dot" style="background:var(--terracotta); top:10px; right:10%;"></div>
+  <!-- Lunes de Investigación -->
+  <section id="lunes-investigacion">
     <div class="section-head">
-      <p class="eyebrow">Regalo</p>
-      <h2>Gift card — Baby shower</h2>
-      <p>¿Buscas un regalo distinto para un baby shower? Regala una asesoría de lactancia:
-      un apoyo real para esa nueva mamá, no una cosa más. Se coordina el horario después,
-      según la fecha del nacimiento.</p>
+      <p class="eyebrow">Blog</p>
+      <h2>Lunes de Investigación</h2>
+      <p>Artículos cortos basados en evidencia, a partir de los carruseles semanales de Instagram.</p>
     </div>
+    <div class="posts-grid" id="posts-grid"></div>
   </section>
 
-  <section id="reserva">
-    <div class="section-head">
-      <p class="eyebrow">Agenda</p>
-      <h2>Confirma tu hora</h2>
-      <p>Selecciona fecha y horario disponible. El pago se realiza de forma segura con Webpay.</p>
-    </div>
-
-    <div class="booking-card">
-      <form id="booking-form">
-        <div class="field">
-          <label for="serviceId">Servicio</label>
-          <select id="serviceId" required></select>
-        </div>
-
-        <div class="field">
-          <label for="date">Fecha</label>
-          <input type="date" id="date" required>
-        </div>
-
-        <div class="field">
-          <label>Horarios disponibles</label>
-          <div id="slots"><span class="note">Elige una fecha para ver horarios.</span></div>
-          <input type="hidden" id="time" required>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label for="name">Nombre completo</label>
-            <input type="text" id="name" required>
-          </div>
-          <div class="field">
-            <label for="phone">Teléfono</label>
-            <input type="tel" id="phone" required>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="email">Correo electrónico</label>
-          <input type="email" id="email" required>
-        </div>
-
-        <div class="field">
-          <label for="address">Dirección (si es visita a domicilio)</label>
-          <input type="text" id="address">
-        </div>
-
-        <div class="field">
-          <label for="notes">Notas para la matrona (opcional)</label>
-          <textarea id="notes"></textarea>
-        </div>
-
-        <button type="submit" class="submit-btn" id="submit-btn">Ir a pagar con Webpay</button>
-        <p class="note">Serás redirigida al pago seguro de Transbank Webpay. Tu hora se confirma automáticamente al pagar.</p>
-        <p class="form-msg" id="form-msg"></p>
-      </form>
-    </div>
-  </section>
-
+  <!-- Testimonios -->
   <section id="testimonios">
     <div class="section-head">
       <p class="eyebrow">Testimonios</p>
       <h2>Lo que dicen las mamás</h2>
     </div>
-    <div class="testimonials">
-      <div class="testimonial">"Graciela me ayudó a resolver el dolor al amamantar en una sola sesión. Su calma se contagia."<div class="who">— Paciente, control de lactancia</div></div>
-      <div class="testimonial">"La visita a domicilio postparto fue justo lo que necesitaba en esos primeros días."<div class="who">— Paciente, visita a domicilio</div></div>
-      <div class="testimonial">"Muy profesional y cercana. Explica todo con paciencia y sin apuro."<div class="who">— Paciente, control de embarazo</div></div>
+    <div class="testimonios-grid" id="testimonios-grid">
+      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
+      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
+      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section-head">
+      <p class="eyebrow">Preguntas frecuentes</p>
+      <h2>Antes de agendar</h2>
+    </div>
+    <details class="faq-item">
+      <summary>¿Cuánto dura una asesoría?</summary>
+      <div class="faq-body">La asesoría a domicilio dura 60 minutos, extensible a 90 si se necesita. La asesoría online por Zoom dura 60 minutos.</div>
+    </details>
+    <details class="faq-item">
+      <summary>¿Qué incluye el informe?</summary>
+      <div class="faq-body">Ambas modalidades incluyen un informe escrito con lo observado y el plan de acción, además de seguimiento por WhatsApp en la asesoría a domicilio.</div>
+    </details>
+    <details class="faq-item">
+      <summary>¿Puedo cancelar o reprogramar?</summary>
+      <div class="faq-body">Sí, siempre que avises con al menos 24 horas de anticipación. Sin ese aviso, la asesoría no tiene reembolso.</div>
+    </details>
+    <details class="faq-item">
+      <summary>¿Puedo pedir boleta para mi isapre o seguro?</summary>
+      <div class="faq-body">Sí. La boleta de honorarios tiene un valor adicional, correspondiente a la retención de impuestos.</div>
+    </details>
+    <details class="faq-item">
+      <summary>¿Haces asesorías fuera de Santiago?</summary>
+      <div class="faq-body">La asesoría a domicilio cubre toda la Región Metropolitana. La asesoría online llega a todo Chile.</div>
+    </details>
+  </section>
+
+  <!-- Contacto -->
+  <section id="contacto">
+    <div class="contacto-box">
+      <p class="eyebrow">Contacto</p>
+      <h2>Escríbeme por WhatsApp</h2>
+      <a class="btn btn-primary" id="contacto-whatsapp" href="#" target="_blank" rel="noopener">Agenda por WhatsApp</a>
+      <div class="contacto-datos">
+        <p id="contacto-horario"></p>
+        <p id="contacto-cobertura"></p>
+        <p>Instagram: <a id="contacto-instagram" href="#" target="_blank" rel="noopener"></a></p>
+      </div>
+      <ul class="condiciones" id="condiciones-list"></ul>
     </div>
   </section>
 
 </main>
 
+<a class="whatsapp-float" id="float-whatsapp" href="#" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5.1-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1120.2 12 8.2 8.2 0 0112 20.2zm4.5-6.1c-.2-.1-1.4-.7-1.6-.8s-.4-.1-.5.1-.6.8-.8 1-.4.2-.6.1a6.6 6.6 0 01-2-1.2 7.5 7.5 0 01-1.4-1.7c-.1-.2 0-.4.1-.5l.4-.5a.6.6 0 00.1-.6c-.1-.2-.5-1.3-.7-1.8s-.4-.4-.5-.4h-.5a1 1 0 00-.7.3 3 3 0 00-1 2.2 5.2 5.2 0 001.1 2.7 11.7 11.7 0 004.5 4 5.6 5.6 0 002 .5 1.7 1.7 0 001.4-.6 2.6 2.6 0 00.5-1.4c0-.2-.1-.3-.3-.4z"/></svg>
+  Agenda por WhatsApp
+</a>
+
 <footer>
-  <p>Graciela · Matrona y Asesora de Lactancia</p>
-  <div class="palette-bar">
-    <span style="background:#6E1E3A"></span>
-    <span style="background:#C97C63"></span>
-    <span style="background:#D98CA2"></span>
-    <span style="background:#F0C8CF"></span>
-    <span style="background:#F4E3D3"></span>
-  </div>
-  <p>contacto@graciela-matrona.cl</p>
+  <p class="firma">matronalactancia</p>
+  <p>&copy; <span id="anio"></span> Matronalactancia · Graciela Lavanderos</p>
 </footer>
 
 <script src="/js/main.js"></script>
