@@ -88,8 +88,8 @@
       <div class="field"><label>Precio asesoría online ($)</label><input type="number" id="precio-online"></div>
       <div class="field"><label>Precio destete respetuoso ($, vacío = "Próximamente")</label><input type="number" id="precio-destete"></div>
       <div class="row">
-        <div class="field"><label>Cuidados a domicilio de recién nacidos — precio del paquete ($, vacío = "Próximamente")</label><input type="number" id="precio-paquete-cuidados"></div>
-        <div class="field" style="max-width:140px;"><label>Horas incluidas</label><input type="number" id="horas-paquete-cuidados"></div>
+        <div class="field"><label>Cuidados a domicilio — valor por hora ($, vacío = "Próximamente")</label><input type="number" id="precio-hora-cuidados"></div>
+        <div class="field"><label>Cuidados a domicilio — nota de recargo</label><input type="text" id="nota-recargo-cuidados" placeholder="+ recargo según comuna"></div>
       </div>
     </div>
 
@@ -168,8 +168,8 @@ async function cargarTodo() {
   document.getElementById('precio-online').value = online.precio;
   document.getElementById('precio-destete').value = destete.precio || '';
   if (cuidados) {
-    document.getElementById('precio-paquete-cuidados').value = cuidados.precio || '';
-    document.getElementById('horas-paquete-cuidados').value = cuidados.horasPaquete || '';
+    document.getElementById('precio-hora-cuidados').value = cuidados.precioHora || '';
+    document.getElementById('nota-recargo-cuidados').value = cuidados.notaPrecio || '';
   }
 
   const zonasDiv = document.getElementById('zonas-editor');
@@ -233,17 +233,14 @@ async function guardarConfig() {
   }
 
   if (cuidados) {
-    const precioPaquete = document.getElementById('precio-paquete-cuidados').value;
-    const horas = document.getElementById('horas-paquete-cuidados').value;
-    if (precioPaquete && horas) {
-      cuidados.precio = Number(precioPaquete);
-      cuidados.horasPaquete = Number(horas);
-      cuidados.duracion = `Paquete de ${horas} horas`;
-      cuidados.notaPrecio = `${formatCLPAdmin(precioPaquete)} por ${horas} horas`;
+    const precioHora = document.getElementById('precio-hora-cuidados').value;
+    const notaRecargo = document.getElementById('nota-recargo-cuidados').value;
+    cuidados.tipoPrecio = 'por_hora';
+    if (precioHora) {
+      cuidados.precioHora = Number(precioHora);
+      cuidados.notaPrecio = notaRecargo || undefined;
     } else {
-      cuidados.precio = null;
-      cuidados.horasPaquete = null;
-      cuidados.duracion = 'Según la cantidad de horas contratadas';
+      cuidados.precioHora = null;
       cuidados.notaPrecio = 'Próximamente (precio a definir)';
     }
   }

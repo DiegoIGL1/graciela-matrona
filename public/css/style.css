@@ -185,6 +185,7 @@ section {
 .service-card .duracion { color: var(--texto-suave); font-size: 0.88rem; }
 .service-card .precio { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1.5rem; color: var(--rosa-texto); }
 .service-card .precio.proximamente { font-size: 1.05rem; color: var(--texto-suave); font-weight: 700; font-family: 'Nunito', sans-serif; }
+.service-card .precio-nota { color: var(--texto-suave); font-size: 0.85rem; margin-top: -6px; }
 .service-card ul { margin: 0; padding-left: 20px; color: var(--texto-suave); font-size: 0.92rem; }
 .service-card li { margin-bottom: 4px; }
 .service-card .btn { margin-top: auto; }

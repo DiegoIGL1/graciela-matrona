@@ -60,14 +60,14 @@
     {
       "id": "cuidados_recien_nacido",
       "nombre": "Cuidados a domicilio de recién nacidos",
-      "duracion": "Paquete de 12 horas",
+      "duracion": null,
       "incluye": [
-        "Cuidado profesional del recién nacido en tu hogar"
+        "Cuidados de recién nacidos o niños con situación especial",
+        "Reunión previa por Zoom para conocer las necesidades de los padres y a nuestro equipo"
       ],
-      "tipoPrecio": "paquete",
-      "precio": 80000,
-      "horasPaquete": 12,
-      "notaPrecio": "$80.000 por 12 horas"
+      "tipoPrecio": "por_hora",
+      "precioHora": 8000,
+      "notaPrecio": "+ recargo según comuna"
     }
   ],
   "zonas": [

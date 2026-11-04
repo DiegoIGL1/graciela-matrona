@@ -26,9 +26,12 @@ function renderServiceCard(servicio, negocio) {
   } else if (servicio.tipoPrecio === 'proximamente') {
     precioHtml = `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
   } else if (servicio.tipoPrecio === 'por_hora') {
-    precioHtml = servicio.precioHora
-      ? `<div class="precio">${formatCLP(servicio.precioHora)} / hora</div>`
-      : `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
+    if (servicio.precioHora) {
+      precioHtml = `<div class="precio">${formatCLP(servicio.precioHora)} / hora</div>`
+        + (servicio.notaPrecio ? `<div class="precio-nota">${servicio.notaPrecio}</div>` : '');
+    } else {
+      precioHtml = `<div class="precio proximamente">${servicio.notaPrecio}</div>`;
+    }
   } else if (servicio.tipoPrecio === 'paquete') {
     precioHtml = servicio.precio
       ? `<div class="precio">${servicio.notaPrecio || formatCLP(servicio.precio)}</div>`
