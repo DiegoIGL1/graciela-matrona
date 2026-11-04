@@ -1,0 +1,169 @@
+{
+  "negocio": {
+    "nombreMarca": "Matronalactancia",
+    "nombrePersona": "Graciela Lavanderos",
+    "lema": "Acompañamiento que transforma tu lactancia",
+    "whatsapp": "56992534392",
+    "whatsappMensajeDefault": "Hola Graciela, quiero información sobre una asesoría de lactancia",
+    "instagram": "@matronalactancia",
+    "instagramUrl": "https://instagram.com/matronalactancia",
+    "horario": "Lunes a sábado de 8:30 a 20:00 · Domingo de 9:30 a 14:00",
+    "cobertura": "Domicilio en toda la Región Metropolitana · Online a todo Chile"
+  },
+  "servicios": [
+    {
+      "id": "domicilio",
+      "nombre": "Asesoría a domicilio",
+      "duracion": "60 min, extensible a 90",
+      "incluye": [
+        "Evaluación de mamá y bebé",
+        "Técnica y acople en vivo",
+        "Informe escrito y seguimiento por WhatsApp"
+      ],
+      "tipoPrecio": "por_zona",
+      "precioDesde": 60000,
+      "notaPrecio": "Desde $60.000 (según comuna)"
+    },
+    {
+      "id": "online",
+      "nombre": "Asesoría online por Zoom",
+      "duracion": "60 min",
+      "incluye": [
+        "Todo lo que se puede observar en videollamada",
+        "Plan de acción",
+        "Informe"
+      ],
+      "tipoPrecio": "fijo",
+      "precio": 35000
+    },
+    {
+      "id": "giftcard",
+      "nombre": "Gift card",
+      "duracion": null,
+      "incluye": [
+        "Vale de regalo canjeable por una asesoría",
+        "Ideal para baby showers y Navidad"
+      ],
+      "tipoPrecio": "igual_asesoria",
+      "notaPrecio": "Mismo valor de la asesoría elegida"
+    },
+    {
+      "id": "destete",
+      "nombre": "Destete respetuoso",
+      "duracion": "Por definir",
+      "incluye": [
+        "Asesoría individual, a domicilio u online"
+      ],
+      "tipoPrecio": "proximamente",
+      "notaPrecio": "Próximamente"
+    },
+    {
+      "id": "cuidados_recien_nacido",
+      "nombre": "Cuidados a domicilio de recién nacidos",
+      "duracion": "Paquete de 12 horas",
+      "incluye": [
+        "Cuidado profesional del recién nacido en tu hogar"
+      ],
+      "tipoPrecio": "paquete",
+      "precio": 80000,
+      "horasPaquete": 12,
+      "notaPrecio": "$80.000 por 12 horas"
+    }
+  ],
+  "zonas": [
+    {
+      "zona": 1,
+      "etiqueta": "Zona 1 (sin recargo)",
+      "comunas": [
+        "Puente Alto",
+        "La Florida",
+        "La Pintana",
+        "Pirque"
+      ],
+      "precio": 60000
+    },
+    {
+      "zona": 2,
+      "etiqueta": "Zona 2",
+      "comunas": [
+        "San Bernardo",
+        "El Bosque",
+        "La Granja",
+        "San Ramón",
+        "La Cisterna",
+        "Macul",
+        "Peñalolén",
+        "San Joaquín",
+        "Ñuñoa",
+        "La Reina"
+      ],
+      "precio": 65000
+    },
+    {
+      "zona": 3,
+      "etiqueta": "Zona 3",
+      "comunas": [
+        "Santiago Centro",
+        "Providencia",
+        "Las Condes",
+        "Vitacura",
+        "Maipú",
+        "Cerrillos",
+        "Estación Central",
+        "Pedro Aguirre Cerda",
+        "Lo Espejo",
+        "Recoleta",
+        "Independencia",
+        "Buin"
+      ],
+      "precio": 70000
+    },
+    {
+      "zona": 4,
+      "etiqueta": "Zona 4",
+      "comunas": [
+        "Lo Barnechea",
+        "Huechuraba",
+        "Quilicura",
+        "Renca",
+        "Pudahuel",
+        "Cerro Navia",
+        "Quinta Normal",
+        "Lo Prado",
+        "Colina",
+        "Lampa",
+        "Peñaflor",
+        "Talagante y comunas lejanas"
+      ],
+      "precio": 75000
+    }
+  ],
+  "temas": [
+    "Grietas y dolor al amamantar",
+    "Postura y técnica",
+    "Acople",
+    "Producción de leche",
+    "Lactancia diferida y extracción",
+    "Banco de leche propio para la vuelta al trabajo",
+    "Medicamentos y lactancia",
+    "Lactancia con necesidades especiales (prematuros, gemelos, síndrome de Down, entre otras)"
+  ],
+  "condiciones": [
+    "Cancelaciones con al menos 24 horas de anticipación. Si no, no hay reembolso.",
+    "Si necesitas boleta de honorarios para reembolso de isapre o seguro, tiene un valor adicional por la retención de impuestos."
+  ],
+  "sobreMi": {
+    "corta": "Matrona especialista en lactancia, con más de 10 años en neonatología y coordinadora de un Banco de Leche Humana. Te acompaño en tu casa o por videollamada para que vivas tu lactancia con confianza.",
+    "completa": [
+      "Soy Graciela Lavanderos, matrona especialista en lactancia materna. Hace más de 10 años acompaño a mamás, bebés y familias en uno de los momentos más intensos de la vida: los primeros días y meses de lactancia.",
+      "Trabajo en neonatología desde 2015 y hoy soy Matrona Coordinadora de un Banco de Leche Humana y coordinadora de un Comité de Lactancia Materna. He acompañado lactancias de todo tipo: bebés prematuros, gemelos, bebés con necesidades especiales y mamás que sienten que \"no les alcanza la leche\".",
+      "Me formé en la Universidad Mayor y tengo diplomados en Investigación Clínica (Universidad de Chile) y en Gestión y Liderazgo en Empresas de Salud (Pontificia Universidad Católica). Hice una pasantía en el Banco de Leche de Fiocruz, en Brasil, y soy coautora del capítulo \"Bancos de leche\" del libro Enfermería Neonatal (2023).",
+      "Creo en una lactancia informada, respetuosa y sin culpas. Por eso cada asesoría combina la evidencia científica más actual con la calidez que necesitas cuando estás cansada, con dudas o con dolor. Mi trabajo es que vuelvas a confiar en tu cuerpo y en tu bebé."
+    ]
+  },
+  "seo": {
+    "titulo": "Asesoría de lactancia a domicilio y online en Santiago | Matronalactancia",
+    "descripcion": "Asesoría de lactancia a domicilio en Santiago y online a todo Chile. Matrona especialista, más de 10 años de experiencia. Agenda por WhatsApp.",
+    "palabrasClave": "asesoría de lactancia, matrona de lactancia, grietas en el pezón, extracción de leche, Santiago, Puente Alto, online"
+  }
+}
