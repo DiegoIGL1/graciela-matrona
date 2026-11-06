@@ -9,6 +9,7 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
+const REELS_FILE = path.join(DATA_DIR, 'reels.json');
 
 // Datos de partida reales (no un objeto vacío): viven FUERA de data/ porque
 // en Railway data/ es un volumen persistente que arranca vacío en el primer
@@ -18,6 +19,7 @@ const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
 const SEED_DIR = path.join(__dirname, 'seed');
 const CONFIG_SEED = path.join(SEED_DIR, 'config.default.json');
 const POSTS_SEED = path.join(SEED_DIR, 'posts.default.json');
+const REELS_SEED = path.join(SEED_DIR, 'reels.default.json');
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -91,6 +93,29 @@ function deletePost(id) {
   return posts;
 }
 
+// --- Reels de Instagram destacados en la página ---
+function getReels() {
+  return readJson(REELS_FILE, readSeed(REELS_SEED, []));
+}
+
+function saveReels(reels) {
+  writeJson(REELS_FILE, reels);
+  return reels;
+}
+
+function addReel(reel) {
+  const reels = getReels();
+  reels.unshift(reel);
+  saveReels(reels);
+  return reel;
+}
+
+function deleteReel(id) {
+  const reels = getReels().filter(r => r.id !== id);
+  saveReels(reels);
+  return reels;
+}
+
 module.exports = {
   getConfig,
   saveConfig,
@@ -98,4 +123,8 @@ module.exports = {
   savePosts,
   addPost,
   deletePost,
+  getReels,
+  saveReels,
+  addReel,
+  deleteReel,
 };

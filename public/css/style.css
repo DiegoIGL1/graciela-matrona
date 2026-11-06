@@ -112,7 +112,7 @@ section {
 }
 .hero-photo {
   width: 220px;
-  height: 260px;
+  max-width: 220px;
   margin: 0 auto 24px;
   border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
   overflow: hidden;
@@ -165,6 +165,16 @@ section {
   color: var(--texto-suave);
   font-style: italic;
 }
+
+/* ---------- Reels destacados ---------- */
+.reels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  justify-items: center;
+}
+.reels-grid iframe { max-width: 100%; }
+.reels-vacio { color: var(--texto-suave); font-size: 0.9rem; text-align: center; grid-column: 1 / -1; }
 
 /* ---------- Servicios ---------- */
 .services-grid {

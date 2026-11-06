@@ -8,6 +8,9 @@ const root = __dirname;
 const css = fs.readFileSync(path.join(root, 'public/css/style.css'), 'utf8');
 const config = JSON.parse(fs.readFileSync(path.join(root, 'data/config.json'), 'utf8'));
 const posts = JSON.parse(fs.readFileSync(path.join(root, 'data/posts.json'), 'utf8'));
+const reelsFile = path.join(root, 'data/reels.json');
+const reelsSeedFile = path.join(root, 'seed/reels.default.json');
+const reels = JSON.parse(fs.readFileSync(fs.existsSync(reelsFile) ? reelsFile : reelsSeedFile, 'utf8'));
 const photosManifest = JSON.parse(fs.readFileSync(path.join(root, 'data/photos.json'), 'utf8'));
 
 function toBase64Photo(filename) {
@@ -27,14 +30,14 @@ const photos = {
 };
 
 const dataScript = `
-window.__DATA__ = ${JSON.stringify({ config, posts, photos })};
+window.__DATA__ = ${JSON.stringify({ config, posts, reels, photos })};
 `;
 
 // Reutiliza el mismo main.js, solo que en vez de "fetch('/api/content')"
 // lee window.__DATA__.
 const mainJs = fs.readFileSync(path.join(root, 'public/js/main.js'), 'utf8')
   .replace(
-    "const res = await fetch('/api/content');\n  const { config, posts, photos } = await res.json();",
+    "const res = await fetch('/api/content');\n  const { config, posts, reels, photos } = await res.json();",
     'const { config, posts, photos } = window.__DATA__;'
   );
 

@@ -115,6 +115,44 @@ function renderPosts(posts) {
   `).join('');
 }
 
+let igEmbedScriptCargado = false;
+function cargarIgEmbedScript() {
+  return new Promise(resolve => {
+    if (window.instgrm) { resolve(); return; }
+    if (igEmbedScriptCargado) {
+      // Ya se pidió antes; espera a que exista window.instgrm.
+      const check = setInterval(() => {
+        if (window.instgrm) { clearInterval(check); resolve(); }
+      }, 100);
+      return;
+    }
+    igEmbedScriptCargado = true;
+    const script = document.createElement('script');
+    script.src = 'https://www.instagram.com/embed.js';
+    script.async = true;
+    script.onload = resolve;
+    document.body.appendChild(script);
+  });
+}
+
+function renderReels(reels) {
+  const grid = document.getElementById('reels-grid');
+  const section = document.getElementById('reels-destacados');
+  if (!reels || reels.length === 0) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+  if (section) section.style.display = '';
+  grid.innerHTML = reels.map(r => `
+    <blockquote class="instagram-media" data-instgrm-permalink="${r.url}" data-instgrm-version="14" style="background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:calc(100% - 2px);">
+      <a href="${r.url}" target="_blank" rel="noopener"></a>
+    </blockquote>
+  `).join('');
+  cargarIgEmbedScript().then(() => {
+    if (window.instgrm) window.instgrm.Embeds.process();
+  });
+}
+
 function renderCondiciones(condiciones) {
   document.getElementById('condiciones-list').innerHTML =
     condiciones.map(c => `<li>${c}</li>`).join('');
@@ -122,7 +160,7 @@ function renderCondiciones(condiciones) {
 
 async function init() {
   const res = await fetch('/api/content');
-  const { config, posts, photos } = await res.json();
+  const { config, posts, reels, photos } = await res.json();
   const { negocio, servicios, zonas, temas, condiciones, sobreMi } = config;
 
   document.getElementById('anio').textContent = new Date().getFullYear();
@@ -158,6 +196,9 @@ async function init() {
 
   // Posts
   renderPosts(posts);
+
+  // Reels de Instagram
+  renderReels(reels);
 
   // Condiciones
   renderCondiciones(condiciones);

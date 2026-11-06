@@ -75,12 +75,25 @@
 
     <div class="admin-card">
       <h2>Fotos del sitio</h2>
-      <p style="font-size:0.85rem;color:var(--texto-suave);">Sube o reemplaza la foto. Se publica automáticamente en el sitio, sin que tengas que cambiar ningún link.</p>
+      <p style="font-size:0.85rem;color:var(--texto-suave);">Sube, reemplaza o elimina cada foto. Se publica automáticamente en el sitio, sin que tengas que cambiar ningún link.</p>
+      <div class="field" id="foto-actual-hero-wrap" style="display:none;"></div>
       <div class="field"><label>Foto de inicio (hero)</label><input type="file" id="foto-hero" accept="image/*"></div>
+      <div class="field" id="foto-actual-about-wrap" style="display:none;"></div>
       <div class="field"><label>Foto de "Sobre mí"</label><input type="file" id="foto-about" accept="image/*"></div>
+      <div class="field" id="foto-actual-consulta-wrap" style="display:none;"></div>
       <div class="field"><label>Foto de una asesoría (consulta)</label><input type="file" id="foto-consulta" accept="image/*"></div>
       <button class="btn btn-primary" onclick="subirFotos()">Guardar y publicar fotos</button>
       <p class="msg" id="fotos-msg"></p>
+    </div>
+
+    <div class="admin-card">
+      <h2>Reels de Instagram</h2>
+      <p style="font-size:0.85rem;color:var(--texto-suave);">Pega el link de un reel (o post) de Instagram para mostrarlo en la página. Puedes agregar los que quieras.</p>
+      <div class="field"><label>Link del reel</label><input type="text" id="reel-url" placeholder="https://www.instagram.com/reel/..."></div>
+      <div class="field"><label>Título (opcional, solo de referencia tuya)</label><input type="text" id="reel-titulo"></div>
+      <button class="btn btn-primary" onclick="agregarReel()">Agregar y publicar</button>
+      <p class="msg" id="reel-msg"></p>
+      <div id="reels-list" style="margin-top:16px;"></div>
     </div>
 
     <div class="admin-card">
@@ -162,6 +175,9 @@ async function cargarTodo() {
   const data = await res.json();
   CONFIG = data.config;
 
+  renderFotosActuales(data.photos);
+  renderReels(data.reels || []);
+
   const online = CONFIG.servicios.find(s => s.id === 'online');
   const destete = CONFIG.servicios.find(s => s.id === 'destete');
   const cuidados = CONFIG.servicios.find(s => s.id === 'cuidados_recien_nacido');
@@ -189,6 +205,84 @@ async function cargarTodo() {
   // (no cambia nada visualmente si ya estaba todo publicado).
   const sync = await reenviarConfigSilencioso();
   mostrarEstadoPublicacion(sync.ok, sync.error);
+}
+
+function renderFotosActuales(photos) {
+  const slots = ['hero', 'about', 'consulta'];
+  slots.forEach(slot => {
+    const wrap = document.getElementById(`foto-actual-${slot}-wrap`);
+    const filename = photos && photos[slot];
+    if (!filename) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'block';
+    wrap.innerHTML = `
+      <label>Foto actual</label>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <img src="/img/${filename}" alt="" style="width:70px; height:70px; object-fit:cover; border-radius:10px;">
+        <button class="btn btn-secondary" onclick="eliminarFoto('${slot}')" type="button">Eliminar foto</button>
+      </div>`;
+  });
+}
+
+async function eliminarFoto(slot) {
+  if (!confirm('¿Eliminar esta foto? El sitio público quedará con el espacio vacío (placeholder) hasta que subas otra.')) return;
+  const res = await fetch(`/api/admin/photos/${slot}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    renderFotosActuales(data.photos);
+    mostrarEstadoPublicacion(data.publicado, data.error);
+  }
+}
+
+function renderReels(reels) {
+  const list = document.getElementById('reels-list');
+  if (!reels.length) { list.innerHTML = '<p style="font-size:0.85rem;color:var(--texto-suave);">Aún no hay reels agregados.</p>'; return; }
+  list.innerHTML = reels.map(r => `
+    <div class="post-row">
+      <span>${r.titulo ? r.titulo + ' — ' : ''}${r.url}</span>
+      <button onclick="eliminarReel('${r.id}')">Eliminar</button>
+    </div>
+  `).join('');
+}
+
+async function agregarReel() {
+  const url = document.getElementById('reel-url').value.trim();
+  const titulo = document.getElementById('reel-titulo').value.trim();
+  const msg = document.getElementById('reel-msg');
+  if (!url) { msg.className = 'msg error'; msg.textContent = 'Falta el link del reel.'; return; }
+
+  const res = await fetch('/api/admin/reels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD, url, titulo }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    document.getElementById('reel-url').value = '';
+    document.getElementById('reel-titulo').value = '';
+    msg.className = data.publicado ? 'msg ok' : 'msg warn';
+    msg.textContent = data.publicado ? 'Publicado.' : `Guardado aquí, pero no se publicó en el sitio${data.error ? ' (' + data.error + ')' : ''}.`;
+    mostrarEstadoPublicacion(data.publicado, data.error);
+    const content = await fetch('/api/content').then(r => r.json());
+    renderReels(content.reels || []);
+  } else {
+    msg.className = 'msg error'; msg.textContent = data.error || 'No se pudo guardar.';
+  }
+}
+
+async function eliminarReel(id) {
+  const res = await fetch(`/api/admin/reels/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  mostrarEstadoPublicacion(data.publicado, data.error);
+  const content = await fetch('/api/content').then(r => r.json());
+  renderReels(content.reels || []);
 }
 
 function renderPosts(posts) {
@@ -356,6 +450,9 @@ async function subirFotos() {
     ? `${subidas} foto(s) actualizadas y publicadas.`
     : `${subidas} foto(s) guardadas aquí, pero no todas se publicaron${ultimoError ? ' (' + ultimoError + ')' : ''}. Usa "Reenviar ahora".`;
   mostrarEstadoPublicacion(todasPublicadas, ultimoError);
+  slots.forEach(slot => { document.getElementById(`foto-${slot}`).value = ''; });
+  const content = await fetch('/api/content').then(r => r.json());
+  renderFotosActuales(content.photos);
 }
 
 async function reenviarTodo() {

@@ -53,9 +53,16 @@ app.get('/api/content', (req, res) => {
   res.json({
     config: db.getConfig(),
     posts: db.getPosts(),
+    reels: db.getReels(),
     photos: getPhotos(),
   });
 });
+
+// Ambos servidores sirven las fotos subidas: el público porque es lo que ve
+// el sitio, el admin para poder mostrar una miniatura de la foto actual en
+// el panel (cada servidor guarda su propia copia; el admin reenvía la suya
+// al público cada vez que se sube o se borra una foto).
+app.use('/img', express.static(IMG_DIR));
 
 if (ROLE === 'public') {
   // ---------------------------------------------------------------------
@@ -65,7 +72,6 @@ if (ROLE === 'public') {
   // no hay panel ni formularios que atacar.
   // ---------------------------------------------------------------------
   app.use(express.static(path.join(__dirname, 'public')));
-  app.use('/img', express.static(IMG_DIR)); // fotos (viven en data/img, fuera de public/)
 
   const SYNC_SECRET = process.env.SYNC_SECRET;
 
@@ -79,12 +85,13 @@ if (ROLE === 'public') {
     next();
   }
 
-  // El servidor admin llama esto cada vez que se guardan precios/zonas/posts.
+  // El servidor admin llama esto cada vez que se guardan precios/zonas/posts/reels.
   app.put('/api/sync/config', requireSync, (req, res) => {
-    const { config, posts } = req.body;
+    const { config, posts, reels } = req.body;
     if (!config) return res.status(400).json({ error: 'Falta config' });
     db.saveConfig(config);
     if (posts) db.savePosts(posts);
+    if (reels) db.saveReels(reels);
     res.json({ ok: true });
   });
 
@@ -103,6 +110,19 @@ if (ROLE === 'public') {
     if (oldFile) fs.unlink(oldFile, () => {}); // se borra DESPUÉS de escribir el nuevo archivo
     photos[slot] = filename;
     savePhotos(photos);
+    res.json({ ok: true });
+  });
+
+  // El servidor admin llama esto cuando se elimina una foto (sin reemplazo).
+  app.delete('/api/sync/photo/:slot', requireSync, (req, res) => {
+    const { slot } = req.params;
+    if (!VALID_SLOTS.includes(slot)) return res.status(400).json({ error: 'Slot inválido.' });
+    const photos = getPhotos();
+    if (photos[slot]) {
+      fs.unlink(path.join(IMG_DIR, photos[slot]), () => {});
+      photos[slot] = null;
+      savePhotos(photos);
+    }
     res.json({ ok: true });
   });
 
@@ -133,7 +153,7 @@ if (ROLE === 'public') {
       const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
-        body: JSON.stringify({ config: db.getConfig(), posts: db.getPosts() }),
+        body: JSON.stringify({ config: db.getConfig(), posts: db.getPosts(), reels: db.getReels() }),
       });
       if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
       return { ok: true };
@@ -152,6 +172,22 @@ if (ROLE === 'public') {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-sync-secret': SYNC_SECRET },
         body: JSON.stringify({ slot, filename, dataBase64: data.toString('base64') }),
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function pushPhotoDeleteToPublic(slot) {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/photo/${slot}`, {
+        method: 'DELETE',
+        headers: { 'x-sync-secret': SYNC_SECRET },
       });
       if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
       return { ok: true };
@@ -235,8 +271,44 @@ if (ROLE === 'public') {
     });
   });
 
-  // Reintento manual: reenvía TODO (config, posts y las 3 fotos) al sitio
-  // público. Útil si un guardado anterior no se pudo publicar.
+  // Elimina una foto (sin reemplazo): borra el archivo local y avisa al
+  // sitio público para que también la quite.
+  app.delete('/api/admin/photos/:slot', requireAdmin, async (req, res) => {
+    const { slot } = req.params;
+    if (!VALID_SLOTS.includes(slot)) return res.status(400).json({ error: 'Slot inválido.' });
+    const photos = getPhotos();
+    if (photos[slot]) {
+      fs.unlink(path.join(IMG_DIR, photos[slot]), () => {});
+      photos[slot] = null;
+      savePhotos(photos);
+    }
+    const sync = await pushPhotoDeleteToPublic(slot);
+    res.json({ ok: true, photos, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
+
+  app.post('/api/admin/reels', requireAdmin, async (req, res) => {
+    const { url, titulo } = req.body;
+    if (!url || !/instagram\.com\/(reel|p)\//.test(url)) {
+      return res.status(400).json({ error: 'Pega un link válido de un reel o post de Instagram.' });
+    }
+    const reel = {
+      id: Date.now().toString(36),
+      url: url.trim(),
+      titulo: (titulo || '').trim(),
+    };
+    db.addReel(reel);
+    const sync = await pushConfigToPublic();
+    res.json({ ...reel, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
+
+  app.delete('/api/admin/reels/:id', requireAdmin, async (req, res) => {
+    db.deleteReel(req.params.id);
+    const sync = await pushConfigToPublic();
+    res.json({ ok: true, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
+
+  // Reintento manual: reenvía TODO (config, posts, reels y las 3 fotos) al
+  // sitio público. Útil si un guardado anterior no se pudo publicar.
   app.post('/api/admin/resync', requireAdmin, async (req, res) => {
     const configSync = await pushConfigToPublic();
     const photos = getPhotos();
