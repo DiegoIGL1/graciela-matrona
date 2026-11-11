@@ -99,6 +99,14 @@ function renderTemas(temas) {
   `).join('');
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function renderPosts(posts) {
   const grid = document.getElementById('posts-grid');
   if (!posts || posts.length === 0) {
@@ -111,8 +119,88 @@ function renderPosts(posts) {
       <h3>${p.titulo}</h3>
       <p>${p.extracto}</p>
       ${p.url ? `<a href="${p.url}" target="_blank" rel="noopener">Leer más</a>` : ''}
+
+      <div class="post-comentarios">
+        <h4>Comentarios</h4>
+        <div class="comentarios-lista" id="comentarios-lista-${p.id}">
+          <p class="comentarios-cargando">Cargando comentarios…</p>
+        </div>
+        <form class="comentario-form" onsubmit="return enviarComentario(event, '${p.id}')">
+          <input type="text" name="website" class="comentario-hp" tabindex="-1" autocomplete="off">
+          <input type="text" class="comentario-nombre" placeholder="Tu nombre" maxlength="100" required>
+          <input type="email" class="comentario-correo" placeholder="Tu correo (no se publica)" maxlength="200" required>
+          <textarea class="comentario-mensaje" placeholder="Escribe tu comentario…" rows="2" maxlength="1000" required></textarea>
+          <button type="submit" class="btn btn-secondary">Comentar</button>
+          <p class="comentario-msg"></p>
+        </form>
+      </div>
     </div>
   `).join('');
+
+  posts.forEach(p => cargarComentarios(p.id));
+}
+
+async function cargarComentarios(postId) {
+  const cont = document.getElementById(`comentarios-lista-${postId}`);
+  if (!cont) return;
+  try {
+    const res = await fetch(`/api/comments/${encodeURIComponent(postId)}`);
+    const comentarios = await res.json();
+    if (!comentarios || comentarios.length === 0) {
+      cont.innerHTML = '<p class="comentarios-vacio">Sé la primera en comentar.</p>';
+      return;
+    }
+    cont.innerHTML = comentarios.map(c => `
+      <div class="comentario-item">
+        <div class="comentario-item-cabecera">
+          <span class="comentario-item-nombre">${escapeHtml(c.nombre)}</span>
+          <span class="comentario-item-fecha">${c.fecha}</span>
+        </div>
+        <p>${escapeHtml(c.mensaje)}</p>
+      </div>
+    `).join('');
+  } catch {
+    cont.innerHTML = '<p class="comentarios-vacio">No se pudieron cargar los comentarios.</p>';
+  }
+}
+
+async function enviarComentario(event, postId) {
+  event.preventDefault();
+  const form = event.target;
+  const nombre = form.querySelector('.comentario-nombre').value.trim();
+  const correo = form.querySelector('.comentario-correo').value.trim();
+  const mensaje = form.querySelector('.comentario-mensaje').value.trim();
+  const website = form.querySelector('.comentario-hp').value;
+  const msg = form.querySelector('.comentario-msg');
+  const boton = form.querySelector('button[type="submit"]');
+
+  msg.className = 'comentario-msg';
+  msg.textContent = 'Enviando…';
+  boton.disabled = true;
+
+  try {
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, nombre, correo, mensaje, website }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      msg.className = 'comentario-msg error';
+      msg.textContent = data.error || 'No se pudo enviar el comentario.';
+      return false;
+    }
+    msg.className = 'comentario-msg ok';
+    msg.textContent = '¡Gracias por tu comentario!';
+    form.reset();
+    cargarComentarios(postId);
+  } catch {
+    msg.className = 'comentario-msg error';
+    msg.textContent = 'No se pudo enviar el comentario. Intenta de nuevo.';
+  } finally {
+    boton.disabled = false;
+  }
+  return false;
 }
 
 let igEmbedScriptCargado = false;

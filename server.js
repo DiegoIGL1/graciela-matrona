@@ -45,6 +45,40 @@ function savePhotos(photos) {
 }
 
 // ---------------------------------------------------------------------------
+// Comentarios de mamás en los posts de "Lunes de Investigación". Viven en el
+// servidor público (igual que las fotos) porque las visitantes los crean ahí
+// directamente — no pasan por el panel admin para publicarse. El admin solo
+// los lee/borra a través de /api/sync/comments con el secreto de sincronía.
+// ---------------------------------------------------------------------------
+const COMMENTS_FILE = path.join(__dirname, 'data', 'comments.json');
+const COMMENT_NAME_MAX = 100;
+const COMMENT_EMAIL_MAX = 200;
+const COMMENT_MSG_MAX = 1000;
+
+function ensureDataDir() {
+  const dir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+function getComments() {
+  ensureDataDir();
+  if (!fs.existsSync(COMMENTS_FILE)) {
+    fs.writeFileSync(COMMENTS_FILE, JSON.stringify([], null, 2));
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(COMMENTS_FILE, 'utf8'));
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveComments(comments) {
+  ensureDataDir();
+  fs.writeFileSync(COMMENTS_FILE, JSON.stringify(comments, null, 2));
+}
+
+// ---------------------------------------------------------------------------
 // API de solo lectura: la usan ambos servidores.
 // En el público, la consume el sitio (main.js). En el admin, la usa el
 // propio panel para cargar los valores actuales en los formularios.
@@ -126,6 +160,67 @@ if (ROLE === 'public') {
     res.json({ ok: true });
   });
 
+  // Lectura pública de comentarios de un post (sin correo: eso no se expone).
+  app.get('/api/comments/:postId', (req, res) => {
+    const comments = getComments()
+      .filter(c => c.postId === req.params.postId)
+      .map(({ id, postId, nombre, mensaje, fecha }) => ({ id, postId, nombre, mensaje, fecha }));
+    res.json(comments);
+  });
+
+  // Cualquier visitante puede dejar un comentario: se publica al instante
+  // (sin moderación previa), con validación básica y un honeypot antispam.
+  app.post('/api/comments', (req, res) => {
+    const { postId, nombre, correo, mensaje, website } = req.body || {};
+
+    // Honeypot: un bot que llena este campo oculto recibe un "ok" falso
+    // pero no se guarda nada.
+    if (website) return res.json({ ok: true });
+
+    if (!postId || typeof postId !== 'string') {
+      return res.status(400).json({ error: 'Falta el post al que pertenece el comentario.' });
+    }
+
+    const nombreLimpio = String(nombre || '').trim().slice(0, COMMENT_NAME_MAX);
+    const correoLimpio = String(correo || '').trim().slice(0, COMMENT_EMAIL_MAX);
+    const mensajeLimpio = String(mensaje || '').trim().slice(0, COMMENT_MSG_MAX);
+
+    if (!nombreLimpio || !mensajeLimpio) {
+      return res.status(400).json({ error: 'Falta tu nombre o el comentario.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+      return res.status(400).json({ error: 'Ingresa un correo válido.' });
+    }
+
+    const comment = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      postId,
+      nombre: nombreLimpio,
+      correo: correoLimpio,
+      mensaje: mensajeLimpio,
+      fecha: new Date().toISOString().slice(0, 10),
+    };
+    const comments = getComments();
+    comments.push(comment);
+    saveComments(comments);
+
+    const { correo: _correo, ...publico } = comment;
+    res.json({ ok: true, comment: publico });
+  });
+
+  // El servidor admin usa esto para listar (y moderar a posteriori) todos los
+  // comentarios, incluido el correo que no se muestra públicamente.
+  app.get('/api/sync/comments', requireSync, (req, res) => {
+    res.json(getComments());
+  });
+
+  // El servidor admin usa esto para borrar un comentario inapropiado.
+  app.delete('/api/sync/comments/:id', requireSync, (req, res) => {
+    const comments = getComments().filter(c => c.id !== req.params.id);
+    saveComments(comments);
+    res.json({ ok: true });
+  });
+
 } else if (ROLE === 'admin') {
   // ---------------------------------------------------------------------
   // SERVIDOR ADMIN: lo usan Diego y Graciela. Tiene el panel y toda la
@@ -186,6 +281,37 @@ if (ROLE === 'public') {
     }
     try {
       const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/photo/${slot}`, {
+        method: 'DELETE',
+        headers: { 'x-sync-secret': SYNC_SECRET },
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function fetchCommentsFromPublic() {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/comments`, {
+        headers: { 'x-sync-secret': SYNC_SECRET },
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true, comments: await r.json() };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function deleteCommentOnPublic(id) {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/comments/${id}`, {
         method: 'DELETE',
         headers: { 'x-sync-secret': SYNC_SECRET },
       });
@@ -305,6 +431,19 @@ if (ROLE === 'public') {
     db.deleteReel(req.params.id);
     const sync = await pushConfigToPublic();
     res.json({ ok: true, publicado: sync.ok, error: sync.ok ? undefined : sync.error });
+  });
+
+  // Lista todos los comentarios (de todos los posts) para que Graciela/Diego
+  // puedan revisarlos y borrar algo inapropiado, aunque se publiquen solos.
+  app.get('/api/admin/comments', requireAdmin, async (req, res) => {
+    const result = await fetchCommentsFromPublic();
+    if (!result.ok) return res.status(502).json({ error: result.error });
+    res.json(result.comments);
+  });
+
+  app.delete('/api/admin/comments/:id', requireAdmin, async (req, res) => {
+    const result = await deleteCommentOnPublic(req.params.id);
+    res.json({ ok: result.ok, error: result.error });
   });
 
   // Reintento manual: reenvía TODO (config, posts, reels y las 3 fotos) al

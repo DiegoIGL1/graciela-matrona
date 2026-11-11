@@ -292,6 +292,28 @@ table.zonas-table td.precio { font-weight: 700; color: var(--rosa-texto); white-
 }
 .post-card .fecha { font-size: 0.8rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.04em; }
 .post-card h3 { font-size: 1.1rem; margin: 6px 0 8px; }
+
+.post-comentarios { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--pastel); }
+.post-comentarios h4 { font-size: 0.95rem; margin: 0 0 10px; color: var(--frambuesa); }
+.comentarios-lista { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.comentario-item { background: var(--crema); border-radius: var(--radius-sm, 12px); padding: 10px 14px; }
+.comentario-item-cabecera { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; }
+.comentario-item-nombre { font-weight: 700; color: var(--rosa-texto); }
+.comentario-item-fecha { color: var(--texto-suave); }
+.comentario-item p { margin: 4px 0 0; font-size: 0.92rem; }
+.comentarios-vacio, .comentarios-cargando { font-size: 0.88rem; color: var(--texto-suave); margin: 0; }
+.comentario-form { display: flex; flex-direction: column; gap: 10px; }
+.comentario-form .comentario-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.comentario-form input, .comentario-form textarea {
+  width: 100%; padding: 10px 12px; border-radius: var(--radius-sm, 12px);
+  border: 1.5px solid var(--pastel); font-family: 'Nunito', sans-serif;
+  font-size: 0.92rem; background: var(--crema); color: var(--texto);
+  box-sizing: border-box; resize: vertical;
+}
+.comentario-form button { align-self: flex-start; }
+.comentario-msg { font-size: 0.85rem; margin: 0; }
+.comentario-msg.ok { color: #257a3e; }
+.comentario-msg.error { color: #a33; }
 .empty-state {
   text-align: center;
   color: var(--texto-suave);
