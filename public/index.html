@@ -145,9 +145,19 @@
       <h2>Lo que dicen las mamás</h2>
     </div>
     <div class="testimonios-grid" id="testimonios-grid">
-      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
-      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
-      <div class="testimonio-placeholder">Espacio reservado para testimonios de mamás, publicados con su autorización.</div>
+      <p class="testimonios-cargando">Cargando testimonios…</p>
+    </div>
+
+    <div class="testimonio-form-wrap">
+      <h3>Déjanos tu testimonio</h3>
+      <form class="testimonio-form" id="testimonio-form" onsubmit="return enviarTestimonio(event)">
+        <input type="text" name="website" class="testimonio-hp" tabindex="-1" autocomplete="off">
+        <input type="text" class="testimonio-nombre" placeholder="Tu nombre" maxlength="100" required>
+        <div class="testimonio-estrellas-picker" id="testimonio-estrellas-picker"></div>
+        <textarea class="testimonio-mensaje" placeholder="Cuéntanos tu experiencia…" rows="3" maxlength="800" required></textarea>
+        <button type="submit" class="btn btn-secondary">Enviar testimonio</button>
+        <p class="testimonio-msg"></p>
+      </form>
     </div>
   </section>
 

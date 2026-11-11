@@ -246,6 +246,97 @@ function renderCondiciones(condiciones) {
     condiciones.map(c => `<li>${c}</li>`).join('');
 }
 
+function estrellasHtml(n) {
+  const llenas = Math.max(0, Math.min(5, Math.round(n)));
+  return '★'.repeat(llenas) + '☆'.repeat(5 - llenas);
+}
+
+function renderTestimonios(testimonios) {
+  const grid = document.getElementById('testimonios-grid');
+  if (!testimonios || testimonios.length === 0) {
+    grid.innerHTML = '<div class="testimonio-placeholder">Todavía no hay testimonios publicados. ¡Sé la primera en dejar el tuyo!</div>';
+    return;
+  }
+  grid.innerHTML = testimonios.slice().reverse().map(t => `
+    <div class="testimonio-card">
+      <div class="testimonio-estrellas-display">${estrellasHtml(t.estrellas)}</div>
+      <p>${escapeHtml(t.mensaje)}</p>
+      <div class="testimonio-cabecera">
+        <span class="testimonio-nombre">${escapeHtml(t.nombre)}</span>
+        <span class="testimonio-fecha">${t.fecha}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function cargarTestimonios() {
+  try {
+    const res = await fetch('/api/testimonials');
+    renderTestimonios(await res.json());
+  } catch {
+    const grid = document.getElementById('testimonios-grid');
+    if (grid) grid.innerHTML = '<div class="testimonio-placeholder">No se pudieron cargar los testimonios.</div>';
+  }
+}
+
+let estrellasSeleccionadas = 5;
+function initEstrellasPicker() {
+  const picker = document.getElementById('testimonio-estrellas-picker');
+  if (!picker) return;
+  function pintar() {
+    picker.innerHTML = [1, 2, 3, 4, 5].map(n => `
+      <button type="button" class="estrella-btn${n <= estrellasSeleccionadas ? ' activa' : ''}" data-n="${n}" aria-label="${n} estrella${n > 1 ? 's' : ''}">★</button>
+    `).join('');
+  }
+  picker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.estrella-btn');
+    if (!btn) return;
+    estrellasSeleccionadas = Number(btn.dataset.n);
+    pintar();
+  });
+  pintar();
+}
+
+async function enviarTestimonio(event) {
+  event.preventDefault();
+  const form = event.target;
+  const nombre = form.querySelector('.testimonio-nombre').value.trim();
+  const mensaje = form.querySelector('.testimonio-mensaje').value.trim();
+  const website = form.querySelector('.testimonio-hp').value;
+  const msg = form.querySelector('.testimonio-msg');
+  const boton = form.querySelector('button[type="submit"]');
+
+  msg.className = 'testimonio-msg';
+  msg.textContent = 'Enviando…';
+  boton.disabled = true;
+
+  try {
+    const res = await fetch('/api/testimonials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, estrellas: estrellasSeleccionadas, mensaje, website }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      msg.className = 'testimonio-msg error';
+      msg.textContent = data.error || 'No se pudo enviar el testimonio.';
+      return false;
+    }
+    msg.className = 'testimonio-msg ok';
+    msg.textContent = '¡Gracias por tu testimonio!';
+    form.reset();
+    estrellasSeleccionadas = 5;
+    initEstrellasPicker();
+    cargarTestimonios();
+  } catch {
+    msg.className = 'testimonio-msg error';
+    msg.textContent = 'No se pudo enviar el testimonio. Intenta de nuevo.';
+  } finally {
+    boton.disabled = false;
+  }
+  return false;
+}
+
 async function init() {
   const res = await fetch('/api/content');
   const { config, posts, reels, photos } = await res.json();
@@ -287,6 +378,10 @@ async function init() {
 
   // Reels de Instagram
   renderReels(reels);
+
+  // Testimonios
+  cargarTestimonios();
+  initEstrellasPicker();
 
   // Condiciones
   renderCondiciones(condiciones);

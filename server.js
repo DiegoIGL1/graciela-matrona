@@ -79,6 +79,33 @@ function saveComments(comments) {
 }
 
 // ---------------------------------------------------------------------------
+// Testimonios de mamás (sección "Lo que dicen las mamás"). Mismo patrón que
+// los comentarios: viven en el servidor público, se publican solos, y el
+// admin solo los lee/borra vía /api/sync/testimonials.
+// ---------------------------------------------------------------------------
+const TESTIMONIALS_FILE = path.join(__dirname, 'data', 'testimonials.json');
+const TESTIMONIAL_NAME_MAX = 100;
+const TESTIMONIAL_MSG_MAX = 800;
+
+function getTestimonials() {
+  ensureDataDir();
+  if (!fs.existsSync(TESTIMONIALS_FILE)) {
+    fs.writeFileSync(TESTIMONIALS_FILE, JSON.stringify([], null, 2));
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(TESTIMONIALS_FILE, 'utf8'));
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTestimonials(testimonials) {
+  ensureDataDir();
+  fs.writeFileSync(TESTIMONIALS_FILE, JSON.stringify(testimonials, null, 2));
+}
+
+// ---------------------------------------------------------------------------
 // API de solo lectura: la usan ambos servidores.
 // En el público, la consume el sitio (main.js). En el admin, la usa el
 // propio panel para cargar los valores actuales en los formularios.
@@ -221,6 +248,54 @@ if (ROLE === 'public') {
     res.json({ ok: true });
   });
 
+  // Lectura pública de testimonios.
+  app.get('/api/testimonials', (req, res) => {
+    res.json(getTestimonials());
+  });
+
+  // Cualquier visitante puede dejar un testimonio: se publica al instante,
+  // con validación básica y un honeypot antispam (igual que los comentarios).
+  app.post('/api/testimonials', (req, res) => {
+    const { nombre, estrellas, mensaje, website } = req.body || {};
+
+    if (website) return res.json({ ok: true }); // honeypot
+
+    const nombreLimpio = String(nombre || '').trim().slice(0, TESTIMONIAL_NAME_MAX);
+    const mensajeLimpio = String(mensaje || '').trim().slice(0, TESTIMONIAL_MSG_MAX);
+    const estrellasNum = Number(estrellas);
+
+    if (!nombreLimpio || !mensajeLimpio) {
+      return res.status(400).json({ error: 'Falta tu nombre o el testimonio.' });
+    }
+    if (!Number.isInteger(estrellasNum) || estrellasNum < 1 || estrellasNum > 5) {
+      return res.status(400).json({ error: 'La calificación debe ser de 1 a 5 estrellas.' });
+    }
+
+    const testimonial = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      nombre: nombreLimpio,
+      estrellas: estrellasNum,
+      mensaje: mensajeLimpio,
+      fecha: new Date().toISOString().slice(0, 10),
+    };
+    const testimonials = getTestimonials();
+    testimonials.push(testimonial);
+    saveTestimonials(testimonials);
+    res.json({ ok: true, testimonial });
+  });
+
+  // El servidor admin usa esto para listar y, si hace falta, borrar un
+  // testimonio (aunque se publiquen solos).
+  app.get('/api/sync/testimonials', requireSync, (req, res) => {
+    res.json(getTestimonials());
+  });
+
+  app.delete('/api/sync/testimonials/:id', requireSync, (req, res) => {
+    const testimonials = getTestimonials().filter(t => t.id !== req.params.id);
+    saveTestimonials(testimonials);
+    res.json({ ok: true });
+  });
+
 } else if (ROLE === 'admin') {
   // ---------------------------------------------------------------------
   // SERVIDOR ADMIN: lo usan Diego y Graciela. Tiene el panel y toda la
@@ -312,6 +387,37 @@ if (ROLE === 'public') {
     }
     try {
       const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/comments/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-sync-secret': SYNC_SECRET },
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function fetchTestimonialsFromPublic() {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/testimonials`, {
+        headers: { 'x-sync-secret': SYNC_SECRET },
+      });
+      if (!r.ok) return { ok: false, error: `el sitio público respondió ${r.status}` };
+      return { ok: true, testimonials: await r.json() };
+    } catch (err) {
+      return { ok: false, error: 'no se pudo contactar al sitio público (' + err.message + ')' };
+    }
+  }
+
+  async function deleteTestimonialOnPublic(id) {
+    if (!PUBLIC_SITE_URL || !SYNC_SECRET) {
+      return { ok: false, error: 'falta PUBLIC_SITE_URL o SYNC_SECRET en el servidor admin' };
+    }
+    try {
+      const r = await fetch(`${PUBLIC_SITE_URL}/api/sync/testimonials/${id}`, {
         method: 'DELETE',
         headers: { 'x-sync-secret': SYNC_SECRET },
       });
@@ -443,6 +549,19 @@ if (ROLE === 'public') {
 
   app.delete('/api/admin/comments/:id', requireAdmin, async (req, res) => {
     const result = await deleteCommentOnPublic(req.params.id);
+    res.json({ ok: result.ok, error: result.error });
+  });
+
+  // Testimonios: se publican solos, pero Graciela/Diego pueden revisarlos
+  // y borrar alguno si hace falta.
+  app.get('/api/admin/testimonials', requireAdmin, async (req, res) => {
+    const result = await fetchTestimonialsFromPublic();
+    if (!result.ok) return res.status(502).json({ error: result.error });
+    res.json(result.testimonials);
+  });
+
+  app.delete('/api/admin/testimonials/:id', requireAdmin, async (req, res) => {
+    const result = await deleteTestimonialOnPublic(req.params.id);
     res.json({ ok: result.ok, error: result.error });
   });
 

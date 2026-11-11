@@ -135,6 +135,13 @@
     </div>
 
     <div class="admin-card">
+      <h2>Testimonios de las mamás</h2>
+      <p style="font-size:0.85rem;color:var(--texto-suave);">Se publican solos en el sitio (sin que tengas que aprobarlos). Acá puedes revisarlos y borrar alguno si hace falta.</p>
+      <button class="btn btn-secondary" onclick="cargarTestimoniosAdmin()">Actualizar lista</button>
+      <div id="testimonios-admin-list" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="admin-card">
       <h2>Reenviar todo al sitio público</h2>
       <p style="font-size:0.85rem;color:var(--texto-suave);">Úsalo si guardaste algo y el aviso dijo que no se pudo publicar (por ejemplo, porque el sitio público estaba despertando o caído). Vuelve a enviar los precios, zonas, posts y fotos actuales.</p>
       <button class="btn btn-secondary" onclick="reenviarTodo()">Reenviar ahora</button>
@@ -210,6 +217,7 @@ async function cargarTodo() {
   POSTS = data.posts || [];
   renderPosts(POSTS);
   cargarComentariosAdmin();
+  cargarTestimoniosAdmin();
 
   // Primer chequeo de conexión con el sitio público: reenvía la config actual
   // (no cambia nada visualmente si ya estaba todo publicado).
@@ -460,6 +468,44 @@ async function eliminarComentarioAdmin(id) {
     alert(data.error || 'No se pudo eliminar el comentario.');
   }
   cargarComentariosAdmin();
+}
+
+async function cargarTestimoniosAdmin() {
+  const list = document.getElementById('testimonios-admin-list');
+  list.innerHTML = '<p style="font-size:0.85rem;color:var(--texto-suave);">Cargando…</p>';
+  const res = await fetch(`/api/admin/testimonials?password=${encodeURIComponent(PASSWORD)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    list.innerHTML = `<p class="msg error">${data.error || 'No se pudieron cargar los testimonios.'}</p>`;
+    return;
+  }
+  const testimonios = Array.isArray(data) ? data : [];
+  if (!testimonios.length) {
+    list.innerHTML = '<p style="font-size:0.85rem;color:var(--texto-suave);">Aún no hay testimonios.</p>';
+    return;
+  }
+  list.innerHTML = testimonios.slice().reverse().map(t => `
+    <div class="post-row" style="align-items:flex-start; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; width:100%; gap:10px;">
+        <span><strong>${escapeHtmlAdmin(t.nombre)}</strong> — ${'★'.repeat(t.estrellas)}${'☆'.repeat(5 - t.estrellas)} — ${t.fecha}</span>
+        <button onclick="eliminarTestimonioAdmin('${t.id}')">Eliminar</button>
+      </div>
+      <p style="margin:0;">${escapeHtmlAdmin(t.mensaje)}</p>
+    </div>`).join('');
+}
+
+async function eliminarTestimonioAdmin(id) {
+  if (!confirm('¿Eliminar este testimonio del sitio?')) return;
+  const res = await fetch(`/api/admin/testimonials/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: PASSWORD }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    alert(data.error || 'No se pudo eliminar el testimonio.');
+  }
+  cargarTestimoniosAdmin();
 }
 
 async function eliminarPost(id) {
